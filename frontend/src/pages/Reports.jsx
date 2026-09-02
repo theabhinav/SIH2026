@@ -20,7 +20,7 @@ export default function Reports() {
     axios.get(`${API}/reports`, { headers: authHeaders })
       .then(r => setReports(r.data))
       .finally(() => setLoading(false));
-  }, [user]);
+  }, [user, nav, authHeaders]);
 
   const del = async (id) => {
     await axios.delete(`${API}/reports/${id}`, { headers: authHeaders });
