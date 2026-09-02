@@ -1,0 +1,109 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800;900&family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Noto+Sans+Tamil:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+    margin: 0;
+    font-family: 'Noto Sans', 'Noto Sans Devanagari', 'Noto Sans Tamil', 'Noto Sans Telugu', 'Noto Sans Bengali', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+}
+
+h1, h2, h3, h4, h5, h6, .font-display {
+    font-family: 'Manrope', 'Noto Sans Devanagari', sans-serif;
+}
+
+@layer base {
+    :root {
+        /* Warm Sand background system — no stark white */
+        --background: 40 33% 94%;         /* #F4F1EA warm sand */
+        --foreground: 155 55% 11%;        /* deep forest text */
+        --card: 40 25% 97%;
+        --card-foreground: 155 55% 11%;
+        --popover: 40 25% 98%;
+        --popover-foreground: 155 55% 11%;
+        --primary: 155 65% 11%;            /* #0A2E20 deep forest */
+        --primary-foreground: 40 33% 96%;
+        --secondary: 135 18% 36%;          /* #4A6B53 sage */
+        --secondary-foreground: 40 33% 96%;
+        --muted: 36 30% 88%;
+        --muted-foreground: 155 20% 30%;
+        --accent: 17 60% 49%;              /* #C85A32 terracotta */
+        --accent-foreground: 40 33% 96%;
+        --destructive: 6 74% 45%;
+        --destructive-foreground: 40 33% 96%;
+        --border: 36 30% 78%;              /* #E8DCC8 sandstone */
+        --input: 36 30% 82%;
+        --ring: 155 65% 20%;
+        --chart-1: 155 65% 20%;
+        --chart-2: 17 60% 49%;
+        --chart-3: 135 18% 40%;
+        --chart-4: 42 68% 55%;
+        --chart-5: 200 40% 35%;
+        --radius: 0.375rem;
+    }
+    .dark {
+        --background: 155 40% 8%;
+        --foreground: 40 30% 92%;
+        --card: 155 40% 10%;
+        --card-foreground: 40 30% 92%;
+        --popover: 155 40% 10%;
+        --popover-foreground: 40 30% 92%;
+        --primary: 40 30% 92%;
+        --primary-foreground: 155 65% 11%;
+        --secondary: 135 15% 30%;
+        --secondary-foreground: 40 30% 92%;
+        --muted: 155 20% 15%;
+        --muted-foreground: 40 15% 65%;
+        --accent: 17 65% 55%;
+        --accent-foreground: 40 30% 96%;
+        --destructive: 6 65% 45%;
+        --destructive-foreground: 40 30% 96%;
+        --border: 155 20% 18%;
+        --input: 155 20% 20%;
+        --ring: 40 30% 60%;
+    }
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+    body {
+        @apply bg-background text-foreground;
+    }
+}
+
+/* subtle grain texture */
+.grain::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.35 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: 0.5;
+    pointer-events: none;
+    mix-blend-mode: multiply;
+}
+
+.hover-lift {
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+.hover-lift:hover {
+    transform: translateY(-2px);
+    border-color: hsl(var(--primary));
+}
+
+/* number-tabular for financials */
+.tabular-nums {
+    font-variant-numeric: tabular-nums;
+}
+
+@layer base {
+    [data-debug-wrapper="true"] {
+        display: contents !important;
+    }
+}

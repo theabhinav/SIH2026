@@ -1,0 +1,96 @@
+{
+  "theme": "Light mode primary with Dark mode toggle. Focused on high-contrast accessibility and trust.",
+  "archetype": "ORGANIC & EARTHY (Trust, Growth, Calm) + High Density Grid. Specifically adapted for Rural Fintech to feel empowering and institutional yet accessible.",
+  "typography": {
+    "headings": {
+      "fontFamily": "'Manrope', sans-serif",
+      "rules": "Use for all H1-H4. Technical, elegant, tracks well with numbers. Must use tracking-tight for H1-H2.",
+      "scales": {
+        "h1": "text-4xl sm:text-5xl lg:text-6xl tracking-tighter font-black",
+        "h2": "text-2xl sm:text-3xl lg:text-4xl tracking-tight font-extrabold",
+        "h3": "text-xl sm:text-2xl font-bold",
+        "h4": "text-lg sm:text-xl font-semibold"
+      }
+    },
+    "body": {
+      "fontFamily": "'Noto Sans', sans-serif",
+      "rules": "MANDATORY for body text to support Indian languages (Hindi, Tamil, Telugu, Bengali, Marathi). Ensure leading-relaxed for readability.",
+      "scales": {
+        "base": "text-base leading-relaxed",
+        "small": "text-sm",
+        "labels": "text-xs tracking-[0.2em] uppercase font-bold text-muted-foreground"
+      }
+    }
+  },
+  "colors": {
+    "base": "Warm sand, stone grey, off-white. No stark white (#FFFFFF) or pure black.",
+    "primary": "Deep Forest Green (#0A2E20) - conveys authority and growth.",
+    "secondary": "Sage (#4A6B53) - secondary actions and subtle highlights.",
+    "accent": "Terracotta (#C85A32) - for alerts, key CTAs, and warnings.",
+    "neutral": "Warm Sand (#F4F1EA) for backgrounds, Sandstone (#E8DCC8) for borders.",
+    "rules": "No generic SaaS blue. Ensure minimum 4.5:1 contrast ratio. Apply Tinted Grey rule: all greys must be slightly warm. Use color strictly for financial/status states (e.g., green/red for profit/loss)."
+  },
+  "visual_enhancers": {
+    "surfaces": "Flat Solid surfaces. NO glassmorphism. Use warm solid backgrounds with 1px subtle borders (border-border). Avoid soft UI/Neumorphism to prevent visual refraction of data.",
+    "shadows": "Minimal. Use sharp 1px borders instead of heavy shadows for definition.",
+    "textures": "Subtle grain texture overlay on hero sections or report covers to kill digital flatness."
+  },
+  "layouts": {
+    "general": "High Density Grid for the Financial Calculator & Scheme Router. Bento Grid for the Feasibility Report (SWOT, Competitors).",
+    "spacing": "Generous Spacing Philosophy. Use p-6, p-8, p-12 inside containers. Containers with borders MUST have internal padding.",
+    "alignment": "Left-align paragraphs, labels, inputs, tabular data. Center-align only for empty states or specific visual balance in hero.",
+    "navigation": "Visible navigation bar on desktop with Logo, 3-5 links, Language Switcher, and User Profile/Save history CTA. Solid background."
+  },
+  "components": {
+    "forms": "Use Shadcn Form, Input, Select, Slider. heavily customized to match the earthy theme. Padding must be generous (h-12 or h-14 inputs) for rural touch targets.",
+    "charts": "Use Shadcn charts (recharts). Implement accessible color palettes (color-blind friendly). Apply for EMI Amortization chart and Moratorium timeline.",
+    "tables": "Use for EMI schedule / Quarterly repayment plan. Tabular typography (right-aligned numbers).",
+    "pdf_download": "Use jspdf and html2canvas. Ensure the download button is a highly visible, pill-shaped primary action button.",
+    "cards": "Cardless or sharp edges with 1px subtle border. Minimal to no border-radius (max 8px). Flat colors."
+  },
+  "motion": {
+    "rules": "Subtle, purposeful animations. Hover states must explicitly set text color and lighten the background. Entrance animations for list items and table rows.",
+    "transitions": "Use specific properties (e.g., transition: transform 0.2s ease, opacity 0.2s ease). NEVER use transition: all.",
+    "micro-interactions": "Active states on the margin capital slider and scheme selection cards."
+  },
+  "accessibility": {
+    "contrast": "Minimum 4.5:1 for normal text, 3:1 for large. Use APCA guidelines.",
+    "motion": "Respect prefers-reduced-motion.",
+    "testing": "All interactive and key informational elements MUST include a `data-testid` attribute (e.g., data-testid='calculate-emi-btn').",
+    "language": "UI must dynamically scale to accommodate longer text strings in Hindi, Tamil, Telugu, Bengali, and Marathi."
+  },
+  "media": {
+    "icons": "Use `lucide-react`. Consistent stroke width (1.5px).",
+    "image_urls": {
+      "hero_portrait": {
+        "url": "https://images.unsplash.com/photo-1775817647097-04b0cfad5cd2?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NTN8MHwxfHNlYXJjaHwzfHxpbmRpYW4lMjBydXJhbCUyMGVudHJlcHJlbmV1ciUyMHBvcnRyYWl0fGVufDB8fHx8MTc4ODE5MzUxNHww&ixlib=rb-4.1.0&q=85",
+        "description": "Young woman with red headscarf, representing rural empowerment",
+        "category": "Hero Section / Onboarding"
+      },
+      "success_story": {
+        "url": "https://images.unsplash.com/photo-1609252285236-93406ce15b0d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NTN8MHwxfHNlYXJjaHwxfHxpbmRpYW4lMjBydXJhbCUyMGVudHJlcHJlbmV1ciUyMHBvcnRyYWl0fGVufDB8fHx8MTc4ODE5MzUxNHww&ixlib=rb-4.1.0&q=85",
+        "description": "Man in orange and white shirt smiling",
+        "category": "Testimonials / Scheme Info Cards"
+      },
+      "market_context": {
+        "url": "https://images.unsplash.com/photo-1761753088381-9fcaa087edae?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDN8MHwxfHNlYXJjaHwyfHxpbmRpYW4lMjBzbWFsbCUyMHNob3AlMjBvd25lcnxlbnwwfHx8fDE3ODgxOTM1MTR8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Street vendor selling under a tree",
+        "category": "Feasibility Report / Market Reach Background"
+      },
+      "store_context": {
+        "url": "https://images.unsplash.com/photo-1751901173169-1ca6df2a5f11?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDN8MHwxfHNlYXJjaHwzfHxpbmRpYW4lMjBzbWFsbCUyMHNob3AlMjBvd25lcnxlbnwwfHx8fDE3ODgxOTM1MTR8MA&ixlib=rb-4.1.0&q=85",
+        "description": "An elderly man sits in a small shop",
+        "category": "Dashboard Empty State / Generic Context"
+      }
+    }
+  },
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "Do not center-align the app container. Remove generic text-align: center from root CSS.",
+    "Use 2-3x more spacing than typical (p-8, p-12).",
+    "Avoid generic 'AI slop' gradients; use flat, high-contrast surfaces with solid backgrounds.",
+    "Never use placeholder text or external dummy image URLs. Only use the provided Unsplash URLs.",
+    "Include data-testid attributes on all interactive elements and inputs.",
+    "Ensure UI accommodates varying string lengths for the 6 target languages.",
+    "Do not use generic SaaS blue colors or generic Inter font for headings."
+  ]
+}
