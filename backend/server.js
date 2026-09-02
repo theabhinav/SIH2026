@@ -517,6 +517,38 @@ app.delete('/api/reports/:id', authenticateToken, (req, res) => {
   res.json({ ok: true });
 });
 
+// ---------- Serve React Frontend Build ----------
+const path = require('path');
+const fs = require('fs');
+const frontendBuildPath = path.join(__dirname, '../frontend/build');
+
+app.use(express.static(frontendBuildPath));
+
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api')) {
+    return res.status(404).json({ detail: 'API route not found' });
+  }
+  const indexPath = path.join(frontendBuildPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.json({
+      message: 'Grameen Udyog AI Advisory API (Node.js/Express + Google Gemini AI)',
+      status: 'live',
+      health: 'OK',
+      endpoints: {
+        health: '/api',
+        locations: '/api/locations',
+        business_categories: '/api/business-categories',
+        calculator: 'POST /api/calculator/compute',
+        feasibility: 'POST /api/feasibility/generate',
+        auth_login: 'POST /api/auth/login',
+        auth_register: 'POST /api/auth/register',
+      },
+    });
+  }
+});
+
 app.listen(PORT, () => {
-  console.log(`🚀 Express Server (with Google Gemini AI) running on http://localhost:${PORT}`);
+  console.log(`🚀 Express Server (with React Frontend + Gemini AI) running on http://localhost:${PORT}`);
 });

@@ -4,7 +4,7 @@
   "private": true,
   "main": "server.js",
   "scripts": {
-    "build": "cd backend && npm install",
+    "build": "cd backend && npm install && cd ../frontend && npm install --legacy-peer-deps && npm run build",
     "install-backend": "cd backend && npm install",
     "postinstall": "npm run install-backend",
     "start": "node server.js"
