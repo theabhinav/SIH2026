@@ -354,6 +354,23 @@ const BUSINESS_CATEGORIES = [
 ];
 
 // ---------- Routes ----------
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Grameen Udyog AI Advisory API (Node.js/Express + Google Gemini AI)',
+    status: 'live',
+    health: 'OK',
+    endpoints: {
+      health: '/api',
+      locations: '/api/locations',
+      business_categories: '/api/business-categories',
+      calculator: 'POST /api/calculator/compute',
+      feasibility: 'POST /api/feasibility/generate',
+      auth_login: 'POST /api/auth/login',
+      auth_register: 'POST /api/auth/register',
+    },
+  });
+});
+
 app.get('/api', (req, res) => {
   res.json({ message: 'Grameen Udyog AI Advisory API (Node.js/Express + Google Gemini AI)', status: 'live' });
 });
