@@ -1,0 +1,10 @@
+{
+  "name": "sih2026-fullstack",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "install-backend": "cd backend && npm install",
+    "postinstall": "npm run install-backend",
+    "start": "cd backend && node server.js"
+  }
+}
