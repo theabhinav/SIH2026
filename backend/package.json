@@ -4,6 +4,7 @@
   "description": "Grameen Udyog AI Advisory Backend (Express / Node.js)",
   "main": "server.js",
   "scripts": {
+    "build": "npm install",
     "start": "node server.js",
     "dev": "node server.js"
   },
