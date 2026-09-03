@@ -30,11 +30,22 @@ export const DropdownMenu = ({ children }) => {
   );
 };
 
-export const DropdownMenuTrigger = ({ children, asChild, onClick, className = '' }) => (
-  <button onClick={onClick} type="button" className={className}>
-    {children}
-  </button>
-);
+export const DropdownMenuTrigger = ({ children, asChild, onClick, className = '' }) => {
+  if (asChild && React.isValidElement(children)) {
+    return React.cloneElement(children, {
+      onClick: (e) => {
+        if (children.props.onClick) children.props.onClick(e);
+        if (onClick) onClick(e);
+      },
+    });
+  }
+
+  return (
+    <button onClick={onClick} type="button" className={className}>
+      {children}
+    </button>
+  );
+};
 
 export const DropdownMenuContent = ({ children, align = 'right', className = '', onClose }) => {
   const alignClass = align === 'right' ? 'right-0' : 'left-0';
