@@ -59,15 +59,21 @@ export const DropdownMenuContent = ({ children, align = 'right', className = '',
   );
 };
 
-export const DropdownMenuItem = ({ children, onClick, className = '' }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className={`w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 rounded-md flex items-center ${className}`}
-  >
-    {children}
-  </button>
-);
+export const DropdownMenuItem = ({ children, onClick, onSelect, className = '' }) => {
+  const handleClick = (e) => {
+    if (onSelect) onSelect(e);
+    if (onClick) onClick(e);
+  };
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      className={`w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 rounded-md flex items-center ${className}`}
+    >
+      {children}
+    </button>
+  );
+};
 
 export const DropdownMenuSeparator = () => <div className="my-1 h-px bg-gray-200" />;
 export const DropdownMenuLabel = ({ children }) => (
