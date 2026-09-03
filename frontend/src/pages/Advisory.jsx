@@ -66,7 +66,7 @@ export default function Advisory() {
   return (
     <div className="max-w-5xl mx-auto px-6 lg:px-10 py-12 lg:py-16">
       <div className="mb-10">
-        <div className="text-xs tracking-[0.3em] uppercase text-accent font-bold mb-3">AI Advisory</div>
+        <div className="text-xs tracking-[0.3em] uppercase text-accent font-bold mb-3">{t(lang, 'aiAdvisory')}</div>
         <h1 className="font-display text-3xl lg:text-5xl tracking-tight font-extrabold text-primary">
           {t(lang, 'startAdvisory')}
         </h1>
@@ -77,7 +77,7 @@ export default function Advisory() {
         {STEPS.map((s) => (
           <div key={s.n} className={`border ${step >= s.n ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-muted-foreground'} p-4 transition-colors`}>
             <s.icon size={16} strokeWidth={1.75} className="mb-2" />
-            <div className="text-[10px] tracking-[0.2em] uppercase font-bold">Step {s.n}</div>
+            <div className="text-[10px] tracking-[0.2em] uppercase font-bold">{t(lang, 'step')} {s.n}</div>
             <div className="text-sm font-semibold mt-1">{s.title}</div>
           </div>
         ))}
@@ -87,8 +87,8 @@ export default function Advisory() {
         {step === 1 && (
           <div className="space-y-6" data-testid="step-location">
             <div>
-              <h2 className="font-display text-2xl font-extrabold text-primary tracking-tight">Where is your enterprise?</h2>
-              <p className="text-sm text-muted-foreground mt-2">The AI uses your Gram Panchayat as the analytical anchor.</p>
+              <h2 className="font-display text-2xl font-extrabold text-primary tracking-tight">{t(lang, 'whereIsEnterprise')}</h2>
+              <p className="text-sm text-muted-foreground mt-2">{t(lang, 'panchayatAnchor')}</p>
             </div>
             <div className="grid md:grid-cols-2 gap-6">
               {[
@@ -110,7 +110,7 @@ export default function Advisory() {
                     }}
                   >
                     <SelectTrigger className="h-12" data-testid={`select-${key}`}>
-                      <SelectValue placeholder={`Select ${label}`} />
+                      <SelectValue placeholder={`${t(lang, 'selectPrefix')} ${label}`} />
                     </SelectTrigger>
                     <SelectContent>
                       {opts.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
@@ -125,8 +125,8 @@ export default function Advisory() {
         {step === 2 && (
           <div className="space-y-6" data-testid="step-business">
             <div>
-              <h2 className="font-display text-2xl font-extrabold text-primary tracking-tight">Which business are you planning?</h2>
-              <p className="text-sm text-muted-foreground mt-2">Choose the closest category — the AI will tailor niches and pricing.</p>
+              <h2 className="font-display text-2xl font-extrabold text-primary tracking-tight">{t(lang, 'whichBusinessPlanning')}</h2>
+              <p className="text-sm text-muted-foreground mt-2">{t(lang, 'chooseClosestCategory')}</p>
             </div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {categories.map((c) => (
@@ -146,8 +146,8 @@ export default function Advisory() {
         {step === 3 && (
           <div className="space-y-8" data-testid="step-capital">
             <div>
-              <h2 className="font-display text-2xl font-extrabold text-primary tracking-tight">How much margin capital do you have?</h2>
-              <p className="text-sm text-muted-foreground mt-2">This is the 10% you must contribute. The scheme funds 90% as concessional loan.</p>
+              <h2 className="font-display text-2xl font-extrabold text-primary tracking-tight">{t(lang, 'howMuchMargin')}</h2>
+              <p className="text-sm text-muted-foreground mt-2">{t(lang, 'marginExplanation')}</p>
             </div>
             <div className="border border-border bg-background p-8">
               <div className="flex items-baseline justify-between mb-6">
@@ -182,11 +182,11 @@ export default function Advisory() {
             </div>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="border border-border p-4 bg-muted/40">
-                <div className="text-xs tracking-[0.2em] uppercase text-muted-foreground mb-1">Project Cost</div>
+                <div className="text-xs tracking-[0.2em] uppercase text-muted-foreground mb-1">{t(lang, 'projectCostLabel')}</div>
                 <div className="font-display font-bold text-2xl tabular-nums">₹{(form.margin_capital * 10).toLocaleString('en-IN')}</div>
               </div>
               <div className="border border-border p-4 bg-muted/40">
-                <div className="text-xs tracking-[0.2em] uppercase text-muted-foreground mb-1">Est. Loan</div>
+                <div className="text-xs tracking-[0.2em] uppercase text-muted-foreground mb-1">{t(lang, 'estLoan')}</div>
                 <div className="font-display font-bold text-2xl tabular-nums text-accent">₹{(form.margin_capital * 9).toLocaleString('en-IN')}</div>
               </div>
             </div>
@@ -214,9 +214,9 @@ export default function Advisory() {
               <Sparkles size={28} strokeWidth={1.5} />
             </div>
             <div>
-              <h2 className="font-display text-2xl font-extrabold text-primary tracking-tight">Ready to generate your advisory</h2>
+              <h2 className="font-display text-2xl font-extrabold text-primary tracking-tight">{t(lang, 'readyToGenerate')}</h2>
               <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
-                Gemini 3.1 Pro will analyse <b>{form.village}</b> for a <b>{form.business_category}</b> enterprise with ₹{form.margin_capital.toLocaleString('en-IN')} margin.
+                {t(lang, 'readyAnalyseText')}
               </p>
             </div>
             <Button size="lg" onClick={generate} disabled={loading} className="rounded-full h-14 px-10 gap-2" data-testid="generate-btn">

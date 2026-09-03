@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { t } from '@/i18n';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import SupplyChainMap from '@/components/SupplyChainMap';
+import { localizeReport, CATEGORY_I18N } from '@/lib/reportLocalization';
 
 function inr(n) {
   if (n === undefined || n === null) return '₹0';
@@ -44,23 +45,25 @@ export default function ReportView({ report, onReset }) {
   const { lang } = useApp();
   const printRef = useRef();
 
-  if (!report) return null;
+  const localizedReport = useMemo(() => localizeReport(report, lang), [report, lang]);
 
-  const input = report.input || report.input_params || {};
-  const fin = report.financials || report.financial_model || {};
-  const rev = report.revenue_model || report.feasibility?.revenue_model || {};
-  const viability = report.viability || report.feasibility?.viability || {};
-  const rec = report.recommendation || report.feasibility?.recommendation || {};
-  const schemes = report.government_schemes || report.schemes || report.feasibility?.government_schemes || [];
-  const vendors = report.nearby_vendors || report.vendors || report.feasibility?.vendors || [];
-  const supplyChain = report.supply_chain_map || report.supply_chain || report.feasibility?.supply_chain_map || {};
-  const narrative = report.narrative || {};
+  if (!localizedReport) return null;
+
+  const input = localizedReport.input || localizedReport.input_params || {};
+  const fin = localizedReport.financials || localizedReport.financial_model || {};
+  const rev = localizedReport.revenue_model || localizedReport.feasibility?.revenue_model || {};
+  const viability = localizedReport.viability || localizedReport.feasibility?.viability || {};
+  const rec = localizedReport.recommendation || localizedReport.feasibility?.recommendation || {};
+  const schemes = localizedReport.government_schemes || localizedReport.schemes || localizedReport.feasibility?.government_schemes || [];
+  const vendors = localizedReport.nearby_vendors || localizedReport.vendors || localizedReport.feasibility?.vendors || [];
+  const supplyChain = localizedReport.supply_chain_map || localizedReport.supply_chain || localizedReport.feasibility?.supply_chain_map || {};
+  const narrative = localizedReport.narrative || {};
 
   const f = {
     ...narrative,
-    ...report.feasibility,
-    viability_score: viability.score || report.feasibility?.viability_score || 75,
-    viability_label: viability.label || report.feasibility?.viability_label || 'Good',
+    ...localizedReport.feasibility,
+    viability_score: viability.score || localizedReport.feasibility?.viability_score || 75,
+    viability_label: viability.label || localizedReport.feasibility?.viability_label || 'Good',
     recommendation: rec,
     revenue_model: rev,
   };
@@ -91,15 +94,15 @@ export default function ReportView({ report, onReset }) {
   const yearlySchedule = fin.yearly_schedule || fin.yearly || [];
   const yearlyData = yearlySchedule.map(y => ({ name: `Y${y.year}`, Principal: y.principal, Interest: y.interest }));
   const pieData = [
-    { name: 'Margin', value: fin.margin_capital || 0, color: 'hsl(var(--secondary))' },
-    { name: 'Loan', value: fin.approved_loan || 0, color: 'hsl(var(--accent))' },
+    { name: t(lang, 'marginLabel'), value: fin.margin_capital || 0, color: 'hsl(var(--secondary))' },
+    { name: t(lang, 'loanLabel'), value: fin.approved_loan || 0, color: 'hsl(var(--accent))' },
   ];
 
   return (
     <div className="max-w-7xl mx-auto px-6 lg:px-10 py-10">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
         <Button variant="ghost" onClick={onReset} data-testid="report-back">
-          <ArrowLeft size={16} className="mr-2" /> New Advisory
+          <ArrowLeft size={16} className="mr-2" /> {t(lang, 'newAdvisory')}
         </Button>
         <Button onClick={downloadPDF} className="rounded-full px-6 gap-2" data-testid="download-pdf-btn">
           <Download size={16} /> {t(lang, 'downloadPdf')}
@@ -111,10 +114,10 @@ export default function ReportView({ report, onReset }) {
         <div className="border border-border bg-primary text-primary-foreground p-10 relative overflow-hidden">
           <div className="relative z-10">
             <div className="flex items-center gap-2 text-xs tracking-[0.3em] uppercase mb-4 opacity-80">
-              <Sparkles size={12} /> Feasibility Report · Grameen Udyog
+              <Sparkles size={12} /> {t(lang, 'feasibilityReportBanner')}
             </div>
             <h1 className="font-display text-3xl lg:text-5xl font-black tracking-tight mb-3 leading-tight">
-              {input.business_category}
+              {CATEGORY_I18N[lang]?.[input.business_category] || input.business_category}
             </h1>
             <div className="flex items-center gap-2 text-sm opacity-90 mb-6">
               <MapPin size={14} /> {input.village}, {input.block} · {input.district}, {input.state}
@@ -161,7 +164,7 @@ export default function ReportView({ report, onReset }) {
               <p className="text-sm leading-relaxed text-muted-foreground">{rec.long_term_outlook}</p>
               {rec.suggested_capital && (
                 <div className="mt-4 inline-flex items-center gap-2 border border-border bg-background px-4 py-2 text-sm">
-                  <IndianRupee size={14} className="text-accent" /> Suggested margin capital:
+                  <IndianRupee size={14} className="text-accent" /> {t(lang, 'suggestedMarginCapital')}
                   <span className="font-display font-bold tabular-nums">{inr(rec.suggested_capital)}</span>
                 </div>
               )}
@@ -174,16 +177,16 @@ export default function ReportView({ report, onReset }) {
           <div className="lg:col-span-3 border border-border bg-card p-8" data-testid="scheme-card">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <div className="text-xs tracking-[0.25em] uppercase text-accent font-bold">Auto-Selected</div>
+                <div className="text-xs tracking-[0.25em] uppercase text-accent font-bold">{t(lang, 'autoSelected')}</div>
                 <h3 className="font-display font-extrabold text-2xl text-primary mt-1">{fin.scheme_name}</h3>
               </div>
               <Landmark size={28} strokeWidth={1.5} className="text-primary" />
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div><div className="text-xs tracking-[0.15em] uppercase text-muted-foreground">{t(lang, 'interestRate')}</div><div className="font-display font-bold text-xl tabular-nums mt-1">{fin.interest_rate}%</div></div>
-              <div><div className="text-xs tracking-[0.15em] uppercase text-muted-foreground">Tenure</div><div className="font-display font-bold text-xl tabular-nums mt-1">{fin.tenure_years} yrs</div></div>
-              <div><div className="text-xs tracking-[0.15em] uppercase text-muted-foreground">Moratorium</div><div className="font-display font-bold text-xl tabular-nums mt-1">{fin.moratorium_months} mo</div></div>
-              <div><div className="text-xs tracking-[0.15em] uppercase text-muted-foreground">Repayment</div><div className="font-display font-bold text-xl tabular-nums mt-1 uppercase">{fin.repayment_frequency}</div></div>
+              <div><div className="text-xs tracking-[0.15em] uppercase text-muted-foreground">{t(lang, 'tenure')}</div><div className="font-display font-bold text-xl tabular-nums mt-1">{fin.tenure_years} {t(lang, 'yearsUnit')}</div></div>
+              <div><div className="text-xs tracking-[0.15em] uppercase text-muted-foreground">{t(lang, 'moratorium')}</div><div className="font-display font-bold text-xl tabular-nums mt-1">{fin.moratorium_months} {t(lang, 'monthsUnit')}</div></div>
+              <div><div className="text-xs tracking-[0.15em] uppercase text-muted-foreground">{t(lang, 'repayment')}</div><div className="font-display font-bold text-xl tabular-nums mt-1 uppercase">{t(lang, fin.repayment_frequency) || fin.repayment_frequency}</div></div>
             </div>
             {fin.capped_by_max && (
               <div className="mt-4 border border-destructive/40 bg-destructive/5 p-3 text-xs text-destructive flex gap-2">
@@ -194,7 +197,7 @@ export default function ReportView({ report, onReset }) {
           </div>
 
           <div className="lg:col-span-2 border border-border bg-card p-6 flex flex-col items-center justify-center">
-            <div className="text-xs tracking-[0.2em] uppercase font-bold text-muted-foreground mb-2">Capital Mix</div>
+            <div className="text-xs tracking-[0.2em] uppercase font-bold text-muted-foreground mb-2">{t(lang, 'capitalMix')}</div>
             <div className="w-full h-44">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -206,8 +209,8 @@ export default function ReportView({ report, onReset }) {
               </ResponsiveContainer>
             </div>
             <div className="flex gap-4 text-xs">
-              <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-secondary" /><span>Margin: {inr(fin.margin_capital)}</span></div>
-              <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-accent" /><span>Loan: {inr(fin.approved_loan)}</span></div>
+              <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-secondary" /><span>{t(lang, 'marginLabel')}: {inr(fin.margin_capital)}</span></div>
+              <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-accent" /><span>{t(lang, 'loanLabel')}: {inr(fin.approved_loan)}</span></div>
             </div>
           </div>
         </div>
@@ -220,11 +223,11 @@ export default function ReportView({ report, onReset }) {
             </Section>
           )}
 
-          <Section icon={TrendingUp} title={t(lang, 'marketReach')} subtitle={`${f.market_reach?.radius_km || 8} km radius`} testId="section-market">
+          <Section icon={TrendingUp} title={t(lang, 'marketReach')} subtitle={`${f.market_reach?.radius_km || 8} ${t(lang, 'kmRadius')}`} testId="section-market">
             <p className="text-sm leading-relaxed mb-4">{f.market_reach?.consumer_base_estimate}</p>
             <div className="space-y-3">
               <div>
-                <div className="text-xs tracking-[0.15em] uppercase text-muted-foreground mb-1">Sales Channels</div>
+                <div className="text-xs tracking-[0.15em] uppercase text-muted-foreground mb-1">{t(lang, 'salesChannels')}</div>
                 <div className="flex flex-wrap gap-1.5">
                   {f.market_reach?.primary_channels?.map((c, i) => (
                     <span key={i} className="text-xs bg-muted px-2.5 py-1 rounded-full">{c}</span>
@@ -232,7 +235,7 @@ export default function ReportView({ report, onReset }) {
                 </div>
               </div>
               <div>
-                <div className="text-xs tracking-[0.15em] uppercase text-muted-foreground mb-1">Target Customers</div>
+                <div className="text-xs tracking-[0.15em] uppercase text-muted-foreground mb-1">{t(lang, 'targetCustomers')}</div>
                 <div className="flex flex-wrap gap-1.5">
                   {f.market_reach?.target_segments?.map((c, i) => (
                     <span key={i} className="text-xs bg-secondary/15 text-secondary font-medium px-2.5 py-1 rounded-full">{c}</span>
@@ -247,7 +250,7 @@ export default function ReportView({ report, onReset }) {
         <Section icon={Target} title={t(lang, 'opportunityAndSwot')} testId="section-swot">
           <div className="grid md:grid-cols-2 gap-6 mb-6">
             <div>
-              <div className="text-xs tracking-[0.15em] uppercase text-muted-foreground mb-2">Unserved Opportunities</div>
+              <div className="text-xs tracking-[0.15em] uppercase text-muted-foreground mb-2">{t(lang, 'unservedOpportunities')}</div>
               <ul className="space-y-1.5 text-sm">
                 {f.opportunity_analysis?.unserved_niches?.map((n, i) => (
                   <li key={i} className="flex gap-2"><CheckCircle2 size={14} className="text-secondary mt-0.5 flex-shrink-0" /><span>{n}</span></li>
@@ -255,7 +258,7 @@ export default function ReportView({ report, onReset }) {
               </ul>
             </div>
             <div>
-              <div className="text-xs tracking-[0.15em] uppercase text-muted-foreground mb-2">Seasonal Windows</div>
+              <div className="text-xs tracking-[0.15em] uppercase text-muted-foreground mb-2">{t(lang, 'seasonalWindows')}</div>
               <div className="flex flex-wrap gap-1.5 mb-3">
                 {f.opportunity_analysis?.seasonal_windows?.map((c, i) => (
                   <span key={i} className="text-xs border border-border px-2.5 py-1">{c}</span>
@@ -274,7 +277,7 @@ export default function ReportView({ report, onReset }) {
 
           {f.threats_detailed?.length > 0 && (
             <div className="mt-6 border-t border-border pt-6">
-              <div className="text-xs tracking-[0.15em] uppercase text-muted-foreground mb-3">Risk Mitigation</div>
+              <div className="text-xs tracking-[0.15em] uppercase text-muted-foreground mb-3">{t(lang, 'riskMitigation')}</div>
               <div className="grid md:grid-cols-3 gap-3">
                 {f.threats_detailed?.map((th, i) => (
                   <div key={i} className="border border-border p-3 text-xs bg-background">
@@ -293,7 +296,7 @@ export default function ReportView({ report, onReset }) {
             <p className="text-sm leading-relaxed mb-4">{f.competitor_mapping?.estimated_density}</p>
             <div className="space-y-3">
               <div>
-                <div className="text-xs tracking-[0.15em] uppercase text-muted-foreground mb-1">Key Competitor Types</div>
+                <div className="text-xs tracking-[0.15em] uppercase text-muted-foreground mb-1">{t(lang, 'keyCompetitorTypes')}</div>
                 <div className="flex flex-wrap gap-1.5">
                   {f.competitor_mapping?.key_competitors_type?.map((c, i) => (
                     <span key={i} className="text-xs border border-border px-2 py-0.5">{c}</span>
@@ -301,7 +304,7 @@ export default function ReportView({ report, onReset }) {
                 </div>
               </div>
               <div>
-                <div className="text-xs tracking-[0.15em] uppercase text-muted-foreground mb-1">Differentiation Strategy</div>
+                <div className="text-xs tracking-[0.15em] uppercase text-muted-foreground mb-1">{t(lang, 'differentiationStrategy')}</div>
                 <p className="text-sm">{f.competitor_mapping?.differentiation_strategy}</p>
               </div>
             </div>
@@ -310,19 +313,19 @@ export default function ReportView({ report, onReset }) {
           <Section icon={IndianRupee} title={t(lang, 'pricingStrategy')} testId="section-pricing">
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
-                <div className="text-xs tracking-[0.15em] uppercase text-muted-foreground mb-1">Suggested Price Range</div>
+                <div className="text-xs tracking-[0.15em] uppercase text-muted-foreground mb-1">{t(lang, 'suggestedPriceRange')}</div>
                 <div className="font-display font-extrabold text-2xl text-primary tabular-nums mb-4">{f.product_market_value?.suggested_price_range}</div>
                 <p className="text-sm text-muted-foreground leading-relaxed mb-3">{f.product_market_value?.regional_purchasing_power_note}</p>
-                <div className="text-xs text-muted-foreground uppercase tracking-wider">Strategy</div>
+                <div className="text-xs text-muted-foreground uppercase tracking-wider">{t(lang, 'strategy')}</div>
                 <div className="text-sm font-semibold mt-1">{f.product_market_value?.pricing_strategy}</div>
               </div>
               <div className="border-l border-border pl-4 space-y-3">
                 <div>
-                  <div className="text-xs text-muted-foreground">Monthly Potential (Low)</div>
+                  <div className="text-xs text-muted-foreground">{t(lang, 'monthlyPotentialLow')}</div>
                   <div className="font-display font-bold text-xl tabular-nums">{inr(f.product_market_value?.monthly_revenue_potential_low)}</div>
                 </div>
                 <div>
-                  <div className="text-xs text-muted-foreground">Monthly Potential (High)</div>
+                  <div className="text-xs text-muted-foreground">{t(lang, 'monthlyPotentialHigh')}</div>
                   <div className="font-display font-bold text-xl tabular-nums text-accent">{inr(f.product_market_value?.monthly_revenue_potential_high)}</div>
                 </div>
               </div>
@@ -332,7 +335,7 @@ export default function ReportView({ report, onReset }) {
 
         {/* Amortisation Chart */}
         {yearlyData.length > 0 && (
-          <Section icon={TrendingUp} title={t(lang, 'amortisationSchedule')} subtitle="7-year principal & interest repayment" testId="section-amortisation">
+          <Section icon={TrendingUp} title={t(lang, 'amortisationSchedule')} subtitle={t(lang, 'amortisationSubtitle')} testId="section-amortisation">
             <div className="w-full h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={yearlyData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -341,8 +344,8 @@ export default function ReportView({ report, onReset }) {
                   <YAxis stroke="#888888" fontSize={12} tickFormatter={(v) => `₹${v / 1000}k`} />
                   <Tooltip formatter={(v) => inr(v)} />
                   <Legend />
-                  <Bar dataKey="Principal" fill="hsl(var(--primary))" stackId="a" />
-                  <Bar dataKey="Interest" fill="hsl(var(--accent))" stackId="a" />
+                  <Bar dataKey="Principal" name={t(lang, 'principal')} fill="hsl(var(--primary))" stackId="a" />
+                  <Bar dataKey="Interest" name={t(lang, 'interest')} fill="hsl(var(--accent))" stackId="a" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -353,7 +356,7 @@ export default function ReportView({ report, onReset }) {
         <Section icon={ListChecks} title={t(lang, 'actionRoadmap')} testId="section-roadmap">
           <div className="grid md:grid-cols-2 gap-6">
             <div>
-              <div className="text-xs tracking-[0.15em] uppercase text-accent font-bold mb-3">5-Step Implementation</div>
+              <div className="text-xs tracking-[0.15em] uppercase text-accent font-bold mb-3">{t(lang, 'stepImplementation')}</div>
               <ol className="space-y-3">
                 {f.action_roadmap?.map((step, i) => (
                   <li key={i} className="flex items-start gap-3 text-sm">
@@ -365,7 +368,7 @@ export default function ReportView({ report, onReset }) {
             </div>
 
             <div>
-              <div className="text-xs tracking-[0.15em] uppercase text-accent font-bold mb-3">Required Documents & Subsidy</div>
+              <div className="text-xs tracking-[0.15em] uppercase text-accent font-bold mb-3">{t(lang, 'requiredDocsAndSubsidy')}</div>
               <ul className="space-y-2 text-sm mb-4">
                 {f.government_support?.required_documents?.map((d, i) => (
                   <li key={i} className="flex gap-2"><CheckCircle2 size={14} className="text-secondary mt-0.5 flex-shrink-0" /><span>{d}</span></li>
@@ -386,12 +389,12 @@ export default function ReportView({ report, onReset }) {
 
         {/* Revenue & Cost Breakdown */}
         {rev.monthly_revenue !== undefined && (
-          <Section icon={Wallet} title={t(lang, 'revenueModel')} subtitle="Projected monthly economics" testId="section-revenue">
+          <Section icon={Wallet} title={t(lang, 'revenueModel')} subtitle={t(lang, 'projectedMonthlyEconomics')} testId="section-revenue">
             <p className="text-sm leading-relaxed text-foreground mb-6">{rev.description}</p>
             <div className="grid lg:grid-cols-5 gap-6">
               <div className="lg:col-span-3">
                 <div className="flex items-baseline justify-between mb-4">
-                  <span className="text-xs tracking-[0.15em] uppercase text-muted-foreground">Projected Monthly Revenue</span>
+                  <span className="text-xs tracking-[0.15em] uppercase text-muted-foreground">{t(lang, 'projectedMonthlyRevenue')}</span>
                   <span className="font-display font-black text-2xl text-primary tabular-nums">{inr(rev.monthly_revenue)}</span>
                 </div>
                 <div className="space-y-3">
@@ -412,14 +415,14 @@ export default function ReportView({ report, onReset }) {
               </div>
               <div className="lg:col-span-2 grid grid-cols-2 gap-3 content-start">
                 {[
-                  ['Operating Cost', inr(rev.operating_cost_total), ''],
-                  ['Loan EMI (mo.)', inr(rev.loan_servicing_monthly), ''],
-                  ['Gross Profit', inr(rev.gross_profit_monthly), 'text-secondary'],
-                  ['Net Profit (mo.)', inr(rev.net_profit_monthly), rev.net_profit_monthly >= 0 ? 'text-secondary' : 'text-destructive'],
-                  ['Net Margin', `${rev.net_margin_pct}%`, ''],
-                  ['Annual ROI', `${rev.roi_annual_pct}%`, 'text-accent'],
-                  ['Break-even', rev.break_even_months ? `${rev.break_even_months} mo` : '—', ''],
-                  ['Annual Net', inr(rev.annual_net_profit), ''],
+                  [t(lang, 'operatingCost'), inr(rev.operating_cost_total), ''],
+                  [t(lang, 'loanEmiMonthly'), inr(rev.loan_servicing_monthly), ''],
+                  [t(lang, 'grossProfit'), inr(rev.gross_profit_monthly), 'text-secondary'],
+                  [t(lang, 'netProfitMonthly'), inr(rev.net_profit_monthly), rev.net_profit_monthly >= 0 ? 'text-secondary' : 'text-destructive'],
+                  [t(lang, 'netMargin'), `${rev.net_margin_pct}%`, ''],
+                  [t(lang, 'annualRoi'), `${rev.roi_annual_pct}%`, 'text-accent'],
+                  [t(lang, 'breakEven'), rev.break_even_months ? `${rev.break_even_months} ${t(lang, 'monthsUnit')}` : '—', ''],
+                  [t(lang, 'annualNet'), inr(rev.annual_net_profit), ''],
                 ].map(([label, val, cls]) => (
                   <div key={label} className="border border-border p-3 bg-muted/30">
                     <div className="text-[10px] tracking-[0.15em] uppercase text-muted-foreground">{label}</div>
@@ -433,29 +436,29 @@ export default function ReportView({ report, onReset }) {
 
         {/* Government schemes to explore */}
         {schemes.length > 0 && (
-          <Section icon={Landmark} title={t(lang, 'exploreSchemes')} subtitle="Compare & apply" testId="section-schemes">
+          <Section icon={Landmark} title={t(lang, 'exploreSchemes')} subtitle={t(lang, 'compareAndApply')} testId="section-schemes">
             <div className="grid md:grid-cols-2 gap-4">
               {schemes.map((s) => (
                 <div key={s.code} className={`border p-5 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 ${s.primary ? 'border-accent bg-accent/5' : 'border-border bg-background'}`} data-testid={`scheme-${s.code}`}>
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <h4 className="font-display font-bold text-primary leading-snug">{s.name}</h4>
-                    {s.primary && <span className="text-[10px] tracking-[0.15em] uppercase font-bold text-accent border border-accent/50 px-2 py-0.5 flex-shrink-0">Best Fit</span>}
+                    {s.primary && <span className="text-[10px] tracking-[0.15em] uppercase font-bold text-accent border border-accent/50 px-2 py-0.5 flex-shrink-0">{t(lang, 'bestFit')}</span>}
                   </div>
                   <div className="text-xs text-muted-foreground mb-3">{s.agency}</div>
                   <div className="grid grid-cols-2 gap-y-2 gap-x-3 text-xs mb-3">
-                    <div><span className="text-muted-foreground">Interest:</span> <span className="font-semibold">{s.interest_range}</span></div>
-                    <div><span className="text-muted-foreground">Max loan:</span> <span className="font-semibold">{s.max_loan}</span></div>
-                    <div className="col-span-2"><span className="text-muted-foreground">Subsidy:</span> <span className="font-semibold">{s.subsidy}</span></div>
-                    <div className="col-span-2"><span className="text-muted-foreground">Ideal for:</span> {s.ideal_for}</div>
+                    <div><span className="text-muted-foreground">{t(lang, 'interestRate')}:</span> <span className="font-semibold">{s.interest_range}</span></div>
+                    <div><span className="text-muted-foreground">{t(lang, 'maxLoan')}:</span> <span className="font-semibold">{s.max_loan}</span></div>
+                    <div className="col-span-2"><span className="text-muted-foreground">{t(lang, 'subsidy')}:</span> <span className="font-semibold">{s.subsidy}</span></div>
+                    <div className="col-span-2"><span className="text-muted-foreground">{t(lang, 'idealFor')}:</span> {s.ideal_for}</div>
                   </div>
                   <details className="text-xs">
-                    <summary className="cursor-pointer font-semibold text-accent">Documents & eligibility</summary>
-                    <div className="mt-2 text-muted-foreground"><b>Eligibility:</b> {s.eligibility}</div>
+                    <summary className="cursor-pointer font-semibold text-accent">{t(lang, 'docsAndEligibility')}</summary>
+                    <div className="mt-2 text-muted-foreground"><b>{t(lang, 'eligibility')}:</b> {s.eligibility}</div>
                     <ul className="mt-2 space-y-1">
                       {s.required_documents?.map((d, i) => <li key={i} className="flex gap-1.5"><CheckCircle2 size={12} className="text-secondary mt-0.5 flex-shrink-0" />{d}</li>)}
                     </ul>
                   </details>
-                  {s.link && <a href={s.link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-accent font-semibold mt-3 underline underline-offset-2">Official portal <ExternalLink size={11} /></a>}
+                  {s.link && <a href={s.link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-accent font-semibold mt-3 underline underline-offset-2">{t(lang, 'officialPortal')} <ExternalLink size={11} /></a>}
                 </div>
               ))}
             </div>
@@ -464,12 +467,12 @@ export default function ReportView({ report, onReset }) {
 
         {/* Nearby vendors */}
         {vendors.length > 0 && (
-          <Section icon={Store} title={t(lang, 'vendors')} subtitle="Supplier price & contact" testId="section-vendors">
+          <Section icon={Store} title={t(lang, 'vendors')} subtitle={t(lang, 'supplierPriceContact')} testId="section-vendors">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border text-left">
-                    {['Type', 'Vendor', 'Item', 'Price', 'Contact', 'Distance', 'Rating'].map((h) => (
+                    {[t(lang, 'type'), t(lang, 'vendor'), t(lang, 'item'), t(lang, 'price'), t(lang, 'contact'), t(lang, 'distance'), t(lang, 'rating')].map((h) => (
                       <th key={h} className="py-2 text-xs tracking-[0.15em] uppercase text-muted-foreground">{h}</th>
                     ))}
                   </tr>
@@ -489,14 +492,14 @@ export default function ReportView({ report, onReset }) {
                 </tbody>
               </table>
             </div>
-            <p className="text-xs text-muted-foreground mt-4">Vendor estimates are indicative. Find community-verified suppliers and add your own on the Community page.</p>
+            <p className="text-xs text-muted-foreground mt-4">{t(lang, 'vendorEstimatesNote')}</p>
           </Section>
         )}
 
         {/* Supply chain map */}
         {supplyChain.stages && (
-          <Section icon={Target} title={t(lang, 'supplyChain')} subtitle="Hyper-local procurement & distribution" testId="section-supply-chain">
-            <SupplyChainMap map={supplyChain} category={input.business_category} village={input.village} />
+          <Section icon={Target} title={t(lang, 'supplyChain')} subtitle={t(lang, 'hyperLocalProcurement')} testId="section-supply-chain">
+            <SupplyChainMap map={supplyChain} category={CATEGORY_I18N[lang]?.[input.business_category] || input.business_category} village={input.village} />
           </Section>
         )}
       </div>

@@ -21,7 +21,7 @@ export default function NavBar() {
           </div>
           <div className="leading-tight">
             <div className="font-display font-black tracking-tight text-lg">{t(lang, 'brand')}</div>
-            <div className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground">AI Advisory</div>
+            <div className="text-[10px] tracking-[0.2em] uppercase text-muted-foreground">{t(lang, 'aiAdvisory')}</div>
           </div>
         </Link>
 
