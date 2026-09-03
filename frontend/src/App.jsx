@@ -9,6 +9,7 @@ import Landing from '@/pages/Landing';
 import AuthPage from '@/pages/AuthPage';
 import Advisory from '@/pages/Advisory';
 import Reports from '@/pages/Reports';
+import Community from '@/pages/Community';
 
 function Shell() {
   const { booted } = useApp();
@@ -22,6 +23,7 @@ function Shell() {
         <Route path="/register" element={<AuthPage mode="register" />} />
         <Route path="/advisory" element={<Advisory />} />
         <Route path="/reports" element={<Reports />} />
+        <Route path="/community" element={<Community />} />
       </Routes>
       <Toaster position="top-right" />
     </div>

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem
 } from '@/components/ui/dropdown-menu';
-import { Sprout, Languages, LogOut, User } from 'lucide-react';
+import { Sprout, Languages, LogOut, User, Users, Coins } from 'lucide-react';
 
 export default function NavBar() {
   const { user, logout, lang, setLang } = useApp();
@@ -26,6 +26,10 @@ export default function NavBar() {
         </Link>
 
         <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={() => nav('/community')} data-testid="community-link" className="gap-2">
+            <Users size={16} />
+            <span className="hidden sm:inline">{t(lang, 'community')}</span>
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" data-testid="lang-switcher" className="gap-2">
@@ -45,6 +49,9 @@ export default function NavBar() {
 
           {user ? (
             <>
+              <div className="hidden sm:flex items-center gap-1.5 border border-accent/40 bg-accent/10 text-accent px-3 h-8 rounded-full text-xs font-bold tabular-nums" data-testid="points-badge" title="Your contribution points">
+                <Coins size={14} /> {user.points ?? 0}
+              </div>
               <Button variant="ghost" size="sm" onClick={() => nav('/reports')} data-testid="my-reports-link">
                 {t(lang, 'dashboard')}
               </Button>

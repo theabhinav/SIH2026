@@ -3,10 +3,11 @@ import { useApp } from '@/context/AppContext';
 import { t } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { ArrowLeft, Download, Sparkles, MapPin, TrendingUp, ShieldAlert, Users, IndianRupee, Target, ListChecks, Landmark, Info } from 'lucide-react';
+import { ArrowLeft, Download, Sparkles, MapPin, TrendingUp, ShieldAlert, Users, IndianRupee, Target, ListChecks, Landmark, Info, Wallet, FileText, CheckCircle2, Phone, Store, Award, ExternalLink } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import SupplyChainMap from '@/components/SupplyChainMap';
 
 function inr(n) {
   return '₹' + Number(n).toLocaleString('en-IN', { maximumFractionDigits: 0 });
@@ -117,6 +118,35 @@ export default function ReportView({ report, onReset }) {
             </div>
           </div>
         </div>
+
+        {/* AI Recommendation */}
+        {f.recommendation && (() => {
+          const rec = f.recommendation;
+          const toneMap = {
+            positive: 'border-secondary/50 bg-secondary/10',
+            caution: 'border-accent/50 bg-accent/10',
+            warn: 'border-accent/60 bg-accent/10',
+            negative: 'border-destructive/50 bg-destructive/10',
+          };
+          const dotMap = { positive: 'bg-secondary', caution: 'bg-accent', warn: 'bg-accent', negative: 'bg-destructive' };
+          return (
+            <div className={`border p-8 ${toneMap[rec.tone] || 'border-border bg-card'}`} data-testid="section-recommendation">
+              <div className="flex items-center gap-2 text-xs tracking-[0.25em] uppercase font-bold mb-3">
+                <Award size={14} /> {t(lang, 'recommendation')}
+                <span className={`ml-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-primary-foreground ${dotMap[rec.tone] || 'bg-primary'}`}>{rec.verdict}</span>
+              </div>
+              <h3 className="font-display font-extrabold text-xl lg:text-2xl text-primary tracking-tight mb-3">{rec.headline}</h3>
+              <p className="text-sm leading-relaxed text-foreground mb-3">{rec.rationale}</p>
+              <p className="text-sm leading-relaxed text-muted-foreground">{rec.long_term_outlook}</p>
+              {rec.suggested_capital && (
+                <div className="mt-4 inline-flex items-center gap-2 border border-border bg-background px-4 py-2 text-sm">
+                  <IndianRupee size={14} className="text-accent" /> Suggested margin capital:
+                  <span className="font-display font-bold tabular-nums">{inr(rec.suggested_capital)}</span>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Scheme card + capital pie */}
         <div className="grid lg:grid-cols-5 gap-6">
@@ -322,17 +352,143 @@ export default function ReportView({ report, onReset }) {
               ))}
             </ol>
           </Section>
-          <Section icon={Landmark} title={t(lang, 'govSupport')} testId="section-gov">
-            <ul className="space-y-3 text-sm">
-              {f.government_support?.map((g, i) => (
-                <li key={i} className="border-l-2 border-accent pl-3 py-1">{g}</li>
+          <Section icon={Landmark} title={t(lang, 'govSupport')} subtitle="Documents & subsidy" testId="section-gov">
+            <div className="text-xs tracking-[0.15em] uppercase text-muted-foreground mb-2">{t(lang, 'requiredDocs')}</div>
+            <div className="grid sm:grid-cols-2 gap-x-4 gap-y-1.5 mb-5">
+              {f.government_support?.required_documents?.map((d, i) => (
+                <div key={i} className="flex items-start gap-2 text-sm"><CheckCircle2 size={14} className="text-secondary mt-0.5 flex-shrink-0" />{d}</div>
+              ))}
+            </div>
+            <div className="text-xs tracking-[0.15em] uppercase text-muted-foreground mb-2">Subsidy & Benefits</div>
+            <ul className="space-y-2 text-sm mb-4">
+              {f.government_support?.subsidies?.map((s, i) => (
+                <li key={i} className="border-l-2 border-accent pl-3 py-1">{s}</li>
               ))}
             </ul>
+            {f.government_support?.notes && (
+              <div className="border border-border bg-muted/40 p-3 text-xs text-muted-foreground flex gap-2"><Info size={14} className="flex-shrink-0" />{f.government_support.notes}</div>
+            )}
             {f.cultural_local_note && (
-              <div className="mt-6 border-t border-border pt-4 italic text-sm text-muted-foreground">{f.cultural_local_note}</div>
+              <div className="mt-4 border-t border-border pt-4 italic text-sm text-muted-foreground">{f.cultural_local_note}</div>
             )}
           </Section>
         </div>
+
+        {/* Revenue & Cost Breakdown */}
+        {f.revenue_model && (
+          <Section icon={Wallet} title={t(lang, 'revenueModel')} subtitle="Projected monthly economics" testId="section-revenue">
+            <p className="text-sm leading-relaxed text-foreground mb-6">{f.revenue_model.description}</p>
+            <div className="grid lg:grid-cols-5 gap-6">
+              <div className="lg:col-span-3">
+                <div className="flex items-baseline justify-between mb-4">
+                  <span className="text-xs tracking-[0.15em] uppercase text-muted-foreground">Projected Monthly Revenue</span>
+                  <span className="font-display font-black text-2xl text-primary tabular-nums">{inr(f.revenue_model.monthly_revenue)}</span>
+                </div>
+                <div className="space-y-3">
+                  {f.revenue_model.cost_breakdown?.map((c, i) => {
+                    const pct = f.revenue_model.monthly_revenue > 0 ? Math.min(100, (c.value / f.revenue_model.monthly_revenue) * 100) : 0;
+                    return (
+                      <div key={i}>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="font-medium">{c.label}</span>
+                          <span className="tabular-nums text-muted-foreground">{inr(c.value)}</span>
+                        </div>
+                        <div className="h-2 bg-muted overflow-hidden"><div className="h-full bg-accent" style={{ width: `${pct}%` }} /></div>
+                        <div className="text-[11px] text-muted-foreground mt-0.5">{c.note}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="lg:col-span-2 grid grid-cols-2 gap-3 content-start">
+                {[
+                  ['Operating Cost', inr(f.revenue_model.operating_cost_total), ''],
+                  ['Loan EMI (mo.)', inr(f.revenue_model.loan_servicing_monthly), ''],
+                  ['Gross Profit', inr(f.revenue_model.gross_profit_monthly), 'text-secondary'],
+                  ['Net Profit (mo.)', inr(f.revenue_model.net_profit_monthly), f.revenue_model.net_profit_monthly >= 0 ? 'text-secondary' : 'text-destructive'],
+                  ['Net Margin', `${f.revenue_model.net_margin_pct}%`, ''],
+                  ['Annual ROI', `${f.revenue_model.roi_annual_pct}%`, 'text-accent'],
+                  ['Break-even', f.revenue_model.break_even_months ? `${f.revenue_model.break_even_months} mo` : '—', ''],
+                  ['Annual Net', inr(f.revenue_model.annual_net_profit), ''],
+                ].map(([label, val, cls]) => (
+                  <div key={label} className="border border-border p-3 bg-muted/30">
+                    <div className="text-[10px] tracking-[0.15em] uppercase text-muted-foreground">{label}</div>
+                    <div className={`font-display font-bold text-lg tabular-nums mt-1 ${cls}`}>{val}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Section>
+        )}
+
+        {/* Government schemes to explore */}
+        {f.government_schemes?.length > 0 && (
+          <Section icon={Landmark} title={t(lang, 'exploreSchemes')} subtitle="Compare & apply" testId="section-schemes">
+            <div className="grid md:grid-cols-2 gap-4">
+              {f.government_schemes.map((s) => (
+                <div key={s.code} className={`border p-5 ${s.primary ? 'border-accent bg-accent/5' : 'border-border bg-background'}`} data-testid={`scheme-${s.code}`}>
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <h4 className="font-display font-bold text-primary leading-snug">{s.name}</h4>
+                    {s.primary && <span className="text-[10px] tracking-[0.15em] uppercase font-bold text-accent border border-accent/50 px-2 py-0.5 flex-shrink-0">Best Fit</span>}
+                  </div>
+                  <div className="text-xs text-muted-foreground mb-3">{s.agency}</div>
+                  <div className="grid grid-cols-2 gap-y-2 gap-x-3 text-xs mb-3">
+                    <div><span className="text-muted-foreground">Interest:</span> <span className="font-semibold">{s.interest_range}</span></div>
+                    <div><span className="text-muted-foreground">Max loan:</span> <span className="font-semibold">{s.max_loan}</span></div>
+                    <div className="col-span-2"><span className="text-muted-foreground">Subsidy:</span> <span className="font-semibold">{s.subsidy}</span></div>
+                    <div className="col-span-2"><span className="text-muted-foreground">Ideal for:</span> {s.ideal_for}</div>
+                  </div>
+                  <details className="text-xs">
+                    <summary className="cursor-pointer font-semibold text-accent">Documents & eligibility</summary>
+                    <div className="mt-2 text-muted-foreground"><b>Eligibility:</b> {s.eligibility}</div>
+                    <ul className="mt-2 space-y-1">
+                      {s.required_documents?.map((d, i) => <li key={i} className="flex gap-1.5"><CheckCircle2 size={12} className="text-secondary mt-0.5 flex-shrink-0" />{d}</li>)}
+                    </ul>
+                  </details>
+                  {s.link && <a href={s.link} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-accent font-semibold mt-3 underline underline-offset-2">Official portal <ExternalLink size={11} /></a>}
+                </div>
+              ))}
+            </div>
+          </Section>
+        )}
+
+        {/* Nearby vendors */}
+        {f.vendors?.length > 0 && (
+          <Section icon={Store} title={t(lang, 'vendors')} subtitle="Supplier price & contact" testId="section-vendors">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left">
+                    {['Type', 'Vendor', 'Item', 'Price', 'Contact', 'Distance', 'Rating'].map((h) => (
+                      <th key={h} className="py-2 text-xs tracking-[0.15em] uppercase text-muted-foreground">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {f.vendors.map((v, i) => (
+                    <tr key={i} className="border-b border-border/50" data-testid={`vendor-row-${i}`}>
+                      <td className="py-2 pr-3"><span className="text-[10px] tracking-[0.1em] uppercase border border-border px-1.5 py-0.5">{v.vendor_type}</span></td>
+                      <td className="py-2 pr-3 font-semibold">{v.name}<div className="text-[11px] text-muted-foreground font-normal">{v.location}</div></td>
+                      <td className="py-2 pr-3">{v.item}<div className="text-[11px] text-muted-foreground">{v.unit}</div></td>
+                      <td className="py-2 pr-3 tabular-nums font-semibold">{inr(v.price)}</td>
+                      <td className="py-2 pr-3"><span className="flex items-center gap-1 text-xs"><Phone size={11} /> {v.contact}</span></td>
+                      <td className="py-2 pr-3 tabular-nums text-muted-foreground">{v.distance_km} km</td>
+                      <td className="py-2 tabular-nums">⭐ {v.rating}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-muted-foreground mt-4">Vendor estimates are indicative. Find community-verified suppliers and add your own on the Community page.</p>
+          </Section>
+        )}
+
+        {/* Supply chain map */}
+        {f.supply_chain && (
+          <Section icon={TrendingUp} title={t(lang, 'supplyChain')} subtitle="Source → Customer" testId="section-supply-chain">
+            <SupplyChainMap supplyChain={f.supply_chain} />
+          </Section>
+        )}
       </div>
     </div>
   );

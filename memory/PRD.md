@@ -1,25 +1,42 @@
-# Grameen Udyog — PRD
+# Grameen Udyog — AI Business Advisory (PRD)
 
-## Original Problem
-Build a hyper-local NLP-powered multilingual AI Business Advisory Assistant + Smart Scheme Calculator for rural/semi-urban entrepreneurs applying for concessional government loans (10% margin, 90% loan). Two modules: (1) Hyper-Local Feasibility Report — Market Reach, Opportunities, SWOT, Threats, Competitors, Pricing; (2) Smart Financial Calculator — Project Cost = Margin/10%, auto-scheme selection (Micro Finance ≤₹1.40L @6.5%/3yr/3mo moratorium OR Term Loan ≤₹50L @8%/7yr/6mo moratorium), EMI + quarterly repayment.
+## Original Problem Statement
+Convert an existing project into a React (Vite) frontend + Node/Express backend with no errors.
+The project is "Grameen Udyog AI Advisory" — a hyper-local AI business advisor + government-loan
+scheme calculator for rural/semi-urban entrepreneurs in India.
 
-## Personas
-- Rural/semi-urban first-time entrepreneur seeking SCA loan (NSFDC/NBCFDC/NSKFDC-style).
-- Field officer helping applicants structure a feasibility case.
+## Stack (after conversion)
+- Frontend: React 19 + Vite 5 (migrated from CRA/craco), Tailwind, shadcn/ui, recharts, lucide-react.
+  Runs via supervisor `frontend` (`yarn start` -> vite) on port 3000.
+- Backend: Node.js/Express + MongoDB (mongodb driver). Runs via supervisor `node-backend`
+  (`/app/backend/run.sh`) on port 8001. The default python `backend` program is intentionally stopped.
+- Auth: JWT (Bearer header) + bcrypt, users persisted in Mongo. Errors returned in `detail`.
+- AI: Google Gemini (user's own GEMINI_API_KEY, direct Google API). Empty by default ->
+  deterministic narrative fallback. All financial numbers are computed server-side regardless.
 
-## Architecture
-- Backend: FastAPI + MongoDB, JWT auth, Gemini 3.1 Pro via emergentintegrations for feasibility reports; pure-python financial engine for scheme routing/EMI/amortization.
-- Frontend: React + Tailwind + shadcn/ui + recharts + jsPDF/html2canvas; 6-language i18n scaffold; multi-step wizard; ReportView with SWOT bento, charts, quarterly table, PDF export.
+## Implemented (2026-06)
+- CRA -> Vite migration; production build passes with 0 errors.
+- MongoDB persistence for users, reports, and community shops.
+- Calculator fixed + made precise: month-by-month amortisation ledger, interest-only moratorium,
+  consistent quarterly/yearly rollups, monthly vs quarterly repayment option, input validation (min ₹5,000).
+- Revenue & cost model: monthly revenue + 5-part cost breakdown (raw material, worker, inventory,
+  operational, other), gross/net profit, net margin, annual ROI, break-even.
+- Viability score reworked: factor-based (profitability, demand, purchasing power, competition,
+  capital adequacy) — varies per input, no longer always 80+.
+- Nuanced AI recommendation: verdict (Recommended / Proceed with Caution / Marginal / Not Recommended),
+  suggested capital, rationale, long-term outlook (suggests a suitable amount for long-term benefit).
+- Government schemes explorer (PMEGP, MUDRA, Stand-Up India, NSFDC, CGTMSE) with eligibility +
+  required documents + subsidy; plus a Government Support block (documents + subsidies + notes).
+- Nearby vendors (raw material / machinery / packaging) with price, contact, distance, rating.
+- Supply-chain map (Source -> Production -> Storage -> Distribution -> Customer).
+- Community feature: signed-in users add nearby shops to earn points (+10 details, +5 photo,
+  +3 contact) and +2 per upvote received; upvoting, and a leaderboard. Points badge in NavBar.
 
-## Implemented (2026-02)
-- Auth: register / login / me (JWT).
-- Endpoints: /api/calculator/compute, /api/feasibility/generate (Gemini), /api/reports CRUD, /api/locations, /api/business-categories.
-- Frontend: Landing, Auth pages, 4-step Advisory wizard (Location→Business→Capital→Generate), ReportView (executive summary, viability score, scheme card, capital pie, market reach, opportunities, SWOT, threats detail, competitors, pricing, amortization chart, quarterly table, roadmap, gov support), Reports history with view/delete, PDF download, 6-language switcher (EN/HI/TA/TE/BN/MR).
-- Design: earthy palette (deep forest green + terracotta + sand), Manrope + Noto Sans, flat surfaces, sharp borders.
+## Testing
+- iteration_1: backend 100% (17/17), frontend 100%. No critical/blocking issues.
 
-## Backlog
-- P1: Login with Google (Emergent Auth) alongside JWT.
-- P1: Save/edit report after generation (currently auto-saved when logged in).
-- P2: Wider location dataset (all 28 states / all districts).
-- P2: Rupee-format speech-to-text for elderly users.
-- P2: Share report via WhatsApp / SMS link.
+## Backlog / Next
+- P1: Enable real Gemini AI (user to paste GEMINI_API_KEY into backend/.env).
+- P2: Code-split the frontend bundle (recharts/jspdf) to reduce main chunk size.
+- P2: Floor community points at 0 on un-upvote; split server.js into routes/services.
+- P2: Multilingual report text for ta/te/bn/mr (currently English fallback).

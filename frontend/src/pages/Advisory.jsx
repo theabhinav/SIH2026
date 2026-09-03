@@ -18,7 +18,7 @@ export default function Advisory() {
   const [categories, setCategories] = useState([]);
   const [form, setForm] = useState({
     state: '', district: '', block: '', village: '',
-    business_category: '', margin_capital: 100000,
+    business_category: '', margin_capital: 100000, repayment_frequency: 'quarterly',
   });
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState(null);
@@ -188,6 +188,21 @@ export default function Advisory() {
               <div className="border border-border p-4 bg-muted/40">
                 <div className="text-xs tracking-[0.2em] uppercase text-muted-foreground mb-1">Est. Loan</div>
                 <div className="font-display font-bold text-2xl tabular-nums text-accent">₹{(form.margin_capital * 9).toLocaleString('en-IN')}</div>
+              </div>
+            </div>
+            <div>
+              <div className="text-xs tracking-[0.2em] uppercase text-muted-foreground mb-2">{t(lang, 'repayment')}</div>
+              <div className="inline-flex border border-border" data-testid="repayment-toggle">
+                {['quarterly', 'monthly'].map((freq) => (
+                  <button
+                    key={freq}
+                    onClick={() => setForm({ ...form, repayment_frequency: freq })}
+                    data-testid={`repayment-${freq}`}
+                    className={`px-6 py-2.5 text-sm font-semibold transition-colors ${form.repayment_frequency === freq ? 'bg-primary text-primary-foreground' : 'bg-background text-muted-foreground hover:text-primary'}`}
+                  >
+                    {t(lang, freq)}
+                  </button>
+                ))}
               </div>
             </div>
           </div>

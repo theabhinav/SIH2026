@@ -50,10 +50,12 @@ export function AppProvider({ children }) {
     setUser(null);
   };
 
+  const setPoints = (points) => setUser((u) => (u ? { ...u, points } : u));
+
   const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
 
   return (
-    <AppContext.Provider value={{ user, token, lang, setLang, login, register, logout, authHeaders, booted }}>
+    <AppContext.Provider value={{ user, token, lang, setLang, login, register, logout, authHeaders, booted, setPoints }}>
       {children}
     </AppContext.Provider>
   );
