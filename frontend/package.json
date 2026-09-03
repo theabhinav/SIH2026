@@ -21,7 +21,6 @@
     "tailwind-merge": "^2.6.0"
   },
   "devDependencies": {
-    "@rollup/rollup-win32-x64-msvc": "^4.34.8",
     "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.5.2",
