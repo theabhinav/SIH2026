@@ -3,7 +3,7 @@ import { useApp } from '@/context/AppContext';
 import { t } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { ArrowLeft, Download, Sparkles, MapPin, TrendingUp, ShieldAlert, Users, IndianRupee, Target, ListChecks, Landmark, Info, Wallet, FileText, CheckCircle2, Phone, Store, Award, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Download, Sparkles, MapPin, TrendingUp, ShieldAlert, Users, IndianRupee, Target, ListChecks, Landmark, Info, Wallet, FileText, CheckCircle2, Phone, Store, Award, ExternalLink, AlertTriangle, Zap, Building2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -55,6 +55,21 @@ export default function ReportView({ report, onReset }) {
   const vendors = report.nearby_vendors || report.vendors || report.feasibility?.vendors || [];
   const supplyChain = report.supply_chain_map || report.supply_chain || report.feasibility?.supply_chain_map || {};
   const narrative = report.narrative || {};
+
+  const isExpansion = report.advisory_type === 'expansion' || input.advisory_type === 'expansion';
+  const adequacy = report.capital_adequacy || {
+    is_enough: (fin.margin_capital || 0) >= 10000,
+    status: (fin.margin_capital || 0) >= 10000 ? 'sufficient' : 'shortfall',
+    badge_text: (fin.margin_capital || 0) >= 10000 ? 'Capital is Sufficient' : 'Capital Shortfall',
+    min_required_margin: 10000,
+    min_project_cost: 100000,
+    shortfall: Math.max(0, 10000 - (fin.margin_capital || 0)),
+    message: (fin.margin_capital || 0) >= 10000 ? 'Capital meets minimum setup requirement.' : 'Capital is below minimum setup requirement.',
+    advice: 'Government subsidy under PMEGP provides up to 35% margin money assistance.',
+  };
+  const expansionModel = report.expansion_model;
+  const primaryScheme = schemes.find((s) => s.primary) || schemes[0] || {};
+  const maxSubsidy = schemes.reduce((m, s) => Math.max(m, s.exact_subsidy_amount || 0), 0) || primaryScheme.exact_subsidy_amount || Math.round(fin.project_cost * 0.25);
 
   const f = {
     ...narrative,
@@ -108,10 +123,15 @@ export default function ReportView({ report, onReset }) {
 
       <div ref={printRef} className="space-y-6">
         {/* Header banner */}
-        <div className="border border-border bg-primary text-primary-foreground p-10 relative overflow-hidden">
+        <div className="border border-border bg-primary text-primary-foreground p-8 lg:p-10 relative overflow-hidden">
           <div className="relative z-10">
             <div className="flex items-center gap-2 text-xs tracking-[0.3em] uppercase mb-4 opacity-80">
-              <Sparkles size={12} /> Feasibility Report · Grameen Udyog
+              <Sparkles size={12} /> {isExpansion ? 'Business Extension Advisory' : 'Feasibility Report'} · Grameen Udyog
+            </div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="px-3 py-1 bg-accent/20 text-accent text-xs font-bold uppercase tracking-wider rounded-full border border-accent/40">
+                {isExpansion ? '🚀 Business Extension & Upgradation' : '🌱 New Enterprise Setup'}
+              </span>
             </div>
             <h1 className="font-display text-3xl lg:text-5xl font-black tracking-tight mb-3 leading-tight">
               {input.business_category}
@@ -126,16 +146,28 @@ export default function ReportView({ report, onReset }) {
                 <div className="text-xs opacity-80 mt-1">{f.viability_label}</div>
               </div>
               <div>
-                <div className="text-xs tracking-[0.2em] uppercase opacity-70">{t(lang, 'projectCost')}</div>
-                <div className="font-display font-black text-2xl mt-1 tabular-nums">{inr(fin.project_cost)}</div>
+                <div className="text-xs tracking-[0.2em] uppercase opacity-70">
+                  {isExpansion ? (lang === 'hi' ? 'कुल विस्तार लागत' : 'Total Expansion Cost') : t(lang, 'projectCost')}
+                </div>
+                <div className="font-display font-black text-2xl mt-1 tabular-nums">
+                  {inr(isExpansion && expansionModel ? expansionModel.expansion_project_cost : fin.project_cost)}
+                </div>
               </div>
               <div>
-                <div className="text-xs tracking-[0.2em] uppercase opacity-70">{t(lang, 'loanEligibility')}</div>
-                <div className="font-display font-black text-2xl mt-1 tabular-nums text-accent">{inr(fin.approved_loan)}</div>
+                <div className="text-xs tracking-[0.2em] uppercase opacity-70">
+                  {isExpansion ? (lang === 'hi' ? 'विस्तार ऋण' : 'Expansion Loan') : t(lang, 'loanEligibility')}
+                </div>
+                <div className="font-display font-black text-2xl mt-1 tabular-nums text-accent">
+                  {inr(isExpansion && expansionModel ? expansionModel.loan_needed : fin.approved_loan)}
+                </div>
               </div>
               <div>
-                <div className="text-xs tracking-[0.2em] uppercase opacity-70">{t(lang, 'emi')}</div>
-                <div className="font-display font-black text-2xl mt-1 tabular-nums">{inr(fin.emi)}</div>
+                <div className="text-xs tracking-[0.2em] uppercase opacity-70">
+                  {lang === 'hi' ? 'पात्र सरकारी सब्सिडी' : 'Eligible Govt Subsidy'}
+                </div>
+                <div className="font-display font-black text-2xl mt-1 tabular-nums text-secondary">
+                  {inr(maxSubsidy)}
+                </div>
               </div>
             </div>
           </div>
@@ -169,22 +201,313 @@ export default function ReportView({ report, onReset }) {
           );
         })()}
 
+        {/* Dedicated Capital Adequacy & Investment Assessment Card */}
+        <div className="border border-border bg-card p-8" data-testid="section-capital-assessment">
+          <div className="flex items-start justify-between flex-wrap gap-4 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-primary text-primary-foreground flex items-center justify-center flex-shrink-0">
+                <Zap size={18} strokeWidth={1.75} />
+              </div>
+              <div>
+                <h3 className="font-display font-bold text-xl text-primary tracking-tight">
+                  {isExpansion
+                    ? (lang === 'hi' ? 'व्यवसाय विस्तार एवं पूंजी आवश्यकता विश्लेषण' : 'Business Extension & Capital Assessment')
+                    : (lang === 'hi' ? 'पूंजी पर्याप्तता एवं निवेश विश्लेषण' : 'Capital Adequacy & Investment Assessment')}
+                </h3>
+                <p className="text-xs tracking-[0.15em] uppercase text-muted-foreground mt-0.5">
+                  {isExpansion
+                    ? (lang === 'hi' ? 'विस्तार हेतु आवश्यक पूंजी और अपेक्षित वृद्धि' : 'Capital required to extend vs available funds & ROI')
+                    : (lang === 'hi' ? 'व्यवसाय शुरू करने के लिए आपकी पूंजी पर्याप्त है या नहीं' : 'Evaluation of your starting capital adequacy & safety margin')}
+                </p>
+              </div>
+            </div>
+
+            {/* Status Badge */}
+            {isExpansion ? (
+              <span
+                className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full ${
+                  expansionModel?.is_enough
+                    ? 'bg-secondary text-secondary-foreground'
+                    : 'bg-accent text-accent-foreground'
+                }`}
+              >
+                {expansionModel?.is_enough ? <CheckCircle2 size={13} /> : <AlertTriangle size={13} />}
+                {expansionModel?.is_enough
+                  ? (lang === 'hi' ? 'विस्तार हेतु पूंजी पर्याप्त है' : 'Expansion Capital Sufficient')
+                  : (lang === 'hi' ? `अतिरिक्त ₹${expansionModel?.shortfall?.toLocaleString('en-IN')} पूंजी आवश्यक` : `Shortfall: ${inr(expansionModel?.shortfall)}`)}
+              </span>
+            ) : (
+              <span
+                className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full ${
+                  adequacy.status === 'sufficient'
+                    ? 'bg-secondary text-secondary-foreground'
+                    : adequacy.status === 'marginal'
+                    ? 'bg-amber-500 text-white'
+                    : 'bg-destructive text-destructive-foreground'
+                }`}
+              >
+                {adequacy.status === 'sufficient' ? (
+                  <CheckCircle2 size={13} />
+                ) : (
+                  <AlertTriangle size={13} />
+                )}
+                {adequacy.status === 'sufficient'
+                  ? (lang === 'hi' ? 'पूंजी पूर्णतः पर्याप्त एवं सुरक्षित' : 'Capital is Fully Sufficient')
+                  : adequacy.status === 'marginal'
+                  ? (lang === 'hi' ? 'न्यूनतम कामचलाऊ पूंजी' : 'Marginal / Minimum Viable')
+                  : (lang === 'hi' ? `पूंजी में कमी: ${inr(adequacy.shortfall)}` : `Capital Shortfall: ${inr(adequacy.shortfall)}`)}
+              </span>
+            )}
+          </div>
+
+          {/* Cards Grid */}
+          {isExpansion && expansionModel ? (
+            <div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+                <div className="border border-border p-4 bg-muted/20">
+                  <div className="text-[10px] uppercase text-muted-foreground font-semibold">Total Expansion Cost</div>
+                  <div className="font-display font-bold text-2xl text-primary tabular-nums mt-1">
+                    {inr(expansionModel.expansion_project_cost)}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">{expansionModel.expansion_name}</div>
+                </div>
+
+                <div className="border border-accent/40 p-4 bg-accent/5">
+                  <div className="text-[10px] uppercase text-accent font-semibold">Required Promoter Margin</div>
+                  <div className="font-display font-bold text-2xl text-accent tabular-nums mt-1">
+                    {inr(expansionModel.required_margin_capital)}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">10% Personal Contribution</div>
+                </div>
+
+                <div className="border border-border p-4 bg-muted/20">
+                  <div className="text-[10px] uppercase text-muted-foreground font-semibold">Your Available Capital</div>
+                  <div className="font-display font-bold text-2xl text-primary tabular-nums mt-1">
+                    {inr(expansionModel.available_margin)}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                    {expansionModel.is_enough ? `Surplus: ${inr(expansionModel.surplus)}` : `Shortfall: ${inr(expansionModel.shortfall)}`}
+                  </div>
+                </div>
+
+                <div className="border border-secondary/40 p-4 bg-secondary/5">
+                  <div className="text-[10px] uppercase text-secondary font-semibold">Eligible Govt Subsidy</div>
+                  <div className="font-display font-bold text-2xl text-secondary tabular-nums mt-1">
+                    {inr(maxSubsidy)}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">PMEGP 2nd Loan / Upgradation</div>
+                </div>
+              </div>
+
+              {/* Expansion Revenue Impact & Payback */}
+              <div className="grid sm:grid-cols-3 gap-3 p-4 border border-border bg-background text-sm">
+                <div>
+                  <span className="text-xs text-muted-foreground uppercase tracking-wider block">Turnover Boost</span>
+                  <span className="font-display font-bold text-lg text-primary">
+                    +{expansionModel.growth_percentage}% ({inr(expansionModel.incremental_monthly_revenue)}/mo)
+                  </span>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground uppercase tracking-wider block">Extra Monthly Profit</span>
+                  <span className="font-display font-bold text-lg text-secondary">
+                    +{inr(expansionModel.incremental_monthly_profit)}/month
+                  </span>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground uppercase tracking-wider block">Estimated Payback Period</span>
+                  <span className="font-display font-bold text-lg text-accent">
+                    ~{expansionModel.payback_months} Months ({expansionModel.expansion_roi_annual}% Annual ROI)
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+                <div className="border border-border p-4 bg-muted/20">
+                  <div className="text-[10px] uppercase text-muted-foreground font-semibold">Your Invested Capital</div>
+                  <div className="font-display font-bold text-2xl text-primary tabular-nums mt-1">
+                    {inr(fin.margin_capital)}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">Margin contribution</div>
+                </div>
+
+                <div className="border border-border p-4 bg-muted/20">
+                  <div className="text-[10px] uppercase text-muted-foreground font-semibold">Minimum Required Margin</div>
+                  <div className="font-display font-bold text-2xl text-primary tabular-nums mt-1">
+                    {inr(adequacy.min_required_margin)}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">For {input.business_category}</div>
+                </div>
+
+                <div className="border border-border p-4 bg-muted/20">
+                  <div className="text-[10px] uppercase text-muted-foreground font-semibold">Total Supported Project</div>
+                  <div className="font-display font-bold text-2xl text-accent tabular-nums mt-1">
+                    {inr(fin.project_cost)}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">10x of your margin capital</div>
+                </div>
+
+                <div className="border border-secondary/40 p-4 bg-secondary/5">
+                  <div className="text-[10px] uppercase text-secondary font-semibold">Eligible Govt Subsidy</div>
+                  <div className="font-display font-bold text-2xl text-secondary tabular-nums mt-1">
+                    {inr(maxSubsidy)}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">Direct Margin Money Grant</div>
+                </div>
+              </div>
+
+              {/* Minimum Loan Required and Loan Eligibility Status Banner */}
+              <div className="grid sm:grid-cols-2 gap-3 mb-4 text-xs">
+                <div className="border border-border p-3 bg-muted/20 rounded">
+                  <span className="text-[10px] uppercase text-muted-foreground font-semibold block">
+                    {lang === 'hi' ? 'न्यूनतम आवश्यक बैंक ऋण' : 'Minimum Loan Required'}
+                  </span>
+                  <span className="font-display font-bold text-xl text-primary block mt-0.5">
+                    {inr(adequacy.min_loan_required || Math.max(0, (adequacy.min_project_cost || 100000) - (fin.margin_capital || 0)))}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground block mt-0.5">
+                    {lang === 'hi' ? 'न्यूनतम व्यवहार्य इकाई सेटअप के लिए' : 'For baseline minimum viable setup'}
+                  </span>
+                </div>
+
+                <div className={`border p-3 rounded ${
+                  adequacy.is_enough
+                    ? 'border-secondary/50 bg-secondary/10 text-secondary-foreground'
+                    : 'border-destructive/50 bg-destructive/10 text-destructive-foreground'
+                }`}>
+                  <span className="text-[10px] uppercase font-semibold block opacity-90">
+                    {lang === 'hi' ? 'ऋण पात्रता स्थिति' : 'Loan Eligibility Status'}
+                  </span>
+                  <span className="font-display font-bold text-base flex items-center gap-1.5 mt-0.5">
+                    {adequacy.is_enough ? (
+                      <>
+                        <CheckCircle2 size={16} className="text-secondary flex-shrink-0" />
+                        <span className="text-secondary">
+                          {lang === 'hi' ? 'ऋण के लिए पात्र (Eligible)' : 'Eligible for Bank Loan'}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <AlertTriangle size={16} className="text-destructive flex-shrink-0" />
+                        <span className="text-destructive">
+                          {lang === 'hi' ? 'अपात्र (मार्जिन कम है)' : 'Ineligible (Margin Shortfall)'}
+                        </span>
+                      </>
+                    )}
+                  </span>
+                  <span className="text-[11px] block mt-0.5 opacity-90">
+                    {adequacy.is_enough
+                      ? (lang === 'hi' ? '10% न्यूनतम प्रमोटर मार्जिन मानदंड पूरा। बैंक ऋण हेतु अनुमोदित।' : 'Promoter margin criteria satisfied. Approved for bank loan processing.')
+                      : (lang === 'hi' ? `ऋण पात्रता हेतु ₹${(adequacy.shortfall || 0).toLocaleString('en-IN')} और मार्जिन जोड़ें।` : `Need ${inr(adequacy.shortfall)} more promoter margin to qualify for bank loan.`)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Capex and Working Capital Benchmarks */}
+              {adequacy.capex_min && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4 text-xs">
+                  <div className="border border-border p-2.5 bg-background">
+                    <span className="text-[10px] text-muted-foreground uppercase block font-semibold">Min Fixed Capex</span>
+                    <span className="font-bold text-primary">{inr(adequacy.capex_min)}</span>
+                  </div>
+                  <div className="border border-border p-2.5 bg-background">
+                    <span className="text-[10px] text-muted-foreground uppercase block font-semibold">45-Day Stock / Opex</span>
+                    <span className="font-bold text-primary">{inr(adequacy.working_capital_min)}</span>
+                  </div>
+                  <div className="border border-border p-2.5 bg-background">
+                    <span className="text-[10px] text-muted-foreground uppercase block font-semibold">Min Margin Required</span>
+                    <span className="font-bold text-primary">{inr(adequacy.min_required_margin)}</span>
+                  </div>
+                  <div className="border border-border p-2.5 bg-background">
+                    <span className="text-[10px] text-muted-foreground uppercase block font-semibold">Safe Recommended Margin</span>
+                    <span className="font-bold text-secondary">{inr(adequacy.recommended_margin)}</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="p-4 border border-border bg-background text-sm space-y-1.5">
+                <div className="font-semibold text-primary">{adequacy.message}</div>
+                <div className="text-xs text-muted-foreground leading-relaxed">{adequacy.advice}</div>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Scheme card + capital pie */}
         <div className="grid lg:grid-cols-5 gap-6">
           <div className="lg:col-span-3 border border-border bg-card p-8" data-testid="scheme-card">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <div className="text-xs tracking-[0.25em] uppercase text-accent font-bold">Auto-Selected</div>
+                <div className="text-xs tracking-[0.25em] uppercase text-accent font-bold">
+                  {fin.loan_mode === 'lean' ? '🛡️ Right-Sized Loan' : 'Auto-Selected'}
+                </div>
                 <h3 className="font-display font-extrabold text-2xl text-primary mt-1">{fin.scheme_name}</h3>
               </div>
               <Landmark size={28} strokeWidth={1.5} className="text-primary" />
             </div>
+
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div><div className="text-xs tracking-[0.15em] uppercase text-muted-foreground">{t(lang, 'interestRate')}</div><div className="font-display font-bold text-xl tabular-nums mt-1">{fin.interest_rate}%</div></div>
               <div><div className="text-xs tracking-[0.15em] uppercase text-muted-foreground">Tenure</div><div className="font-display font-bold text-xl tabular-nums mt-1">{fin.tenure_years} yrs</div></div>
               <div><div className="text-xs tracking-[0.15em] uppercase text-muted-foreground">Moratorium</div><div className="font-display font-bold text-xl tabular-nums mt-1">{fin.moratorium_months} mo</div></div>
               <div><div className="text-xs tracking-[0.15em] uppercase text-muted-foreground">Repayment</div><div className="font-display font-bold text-xl tabular-nums mt-1 uppercase">{fin.repayment_frequency}</div></div>
             </div>
+
+            {/* EMI and Repayment Highlight Box */}
+            <div className="mt-5 border border-border/80 p-4 bg-background/80 rounded space-y-3">
+              <div className="flex items-baseline justify-between flex-wrap gap-2">
+                <div>
+                  <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                    {lang === 'hi' ? 'मासिक किस्त (Monthly EMI)' : 'Monthly EMI'}
+                  </div>
+                  <div className="font-display font-black text-2xl text-primary mt-0.5">
+                    {inr(fin.emi_monthly)} <span className="text-xs font-normal text-muted-foreground">/ month</span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                    {lang === 'hi' ? 'तिमाही किस्त' : 'Quarterly Installment'}
+                  </div>
+                  <div className="font-display font-bold text-lg text-primary mt-0.5">
+                    {inr(fin.quarterly_instalment)}
+                  </div>
+                </div>
+              </div>
+
+              {fin.affordability && (
+                <div className="pt-2 border-t border-border flex items-center justify-between flex-wrap gap-2 text-xs">
+                  <div>
+                    <span className="text-muted-foreground">Net Monthly Cash After EMI: </span>
+                    <span className="font-bold text-secondary">{inr(fin.affordability.net_profit_after_emi)}/mo</span>
+                  </div>
+                  <span
+                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 font-semibold rounded-full text-[11px] ${
+                      fin.affordability.status === 'safe'
+                        ? 'bg-secondary/20 text-secondary-foreground'
+                        : fin.affordability.status === 'moderate'
+                        ? 'bg-amber-500/20 text-amber-900'
+                        : 'bg-destructive/20 text-destructive'
+                    }`}
+                  >
+                    {fin.affordability.status === 'safe' ? <CheckCircle2 size={12} /> : <AlertTriangle size={12} />}
+                    {lang === 'hi' ? fin.affordability.badge_hi : fin.affordability.badge}
+                  </span>
+                </div>
+              )}
+
+              {fin.interest_saved > 0 && (
+                <div className="text-[11px] font-medium text-secondary bg-secondary/10 p-2 rounded flex items-center gap-1.5">
+                  <Sparkles size={13} className="flex-shrink-0" />
+                  <span>
+                    {lang === 'hi'
+                      ? `काम का लोन चुनने से कुल ₹${fin.interest_saved.toLocaleString('en-IN')} के बैंक ब्याज की सीधी बचत हुई है!`
+                      : `Smart Loan Sizing: You saved approx ₹${fin.interest_saved.toLocaleString('en-IN')} in total interest!`}
+                  </span>
+                </div>
+              )}
+            </div>
+
             {fin.capped_by_max && (
               <div className="mt-4 border border-destructive/40 bg-destructive/5 p-3 text-xs text-destructive flex gap-2">
                 <ShieldAlert size={14} className="flex-shrink-0" />
@@ -434,14 +757,45 @@ export default function ReportView({ report, onReset }) {
         {/* Government schemes to explore */}
         {schemes.length > 0 && (
           <Section icon={Landmark} title={t(lang, 'exploreSchemes')} subtitle="Compare & apply" testId="section-schemes">
+            {/* Prominent Subsidy Callout Banner */}
+            <div className="mb-6 p-5 border border-secondary/40 bg-secondary/10 flex items-center justify-between flex-wrap gap-4">
+              <div>
+                <div className="text-xs tracking-[0.2em] uppercase font-bold text-secondary">
+                  {lang === 'hi' ? 'सरकारी योजना सब्सिडी लाभ' : 'Government Subsidy Benefit'}
+                </div>
+                <div className="font-display font-extrabold text-2xl text-primary mt-0.5">
+                  {lang === 'hi' ? 'पात्र सरकारी सब्सिडी:' : 'Eligible Subsidy:'} Up to {inr(maxSubsidy)}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {lang === 'hi'
+                    ? 'गैर-वापसी योग्य पूंजी अनुदान / मार्जिन-मनी, जो बैंक ऋण खाते में सीधे जमा होती है।'
+                    : 'Non-repayable capital grant / margin-money credited directly to your loan account under Central & State schemes.'}
+                </p>
+              </div>
+              <span className="px-4 py-2 bg-secondary text-secondary-foreground text-xs font-bold uppercase tracking-wider rounded-full shadow-sm flex items-center gap-1.5">
+                <CheckCircle2 size={14} /> 100% Direct Bank Transfer
+              </span>
+            </div>
+
             <div className="grid md:grid-cols-2 gap-4">
               {schemes.map((s) => (
                 <div key={s.code} className={`border p-5 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 ${s.primary ? 'border-accent bg-accent/5' : 'border-border bg-background'}`} data-testid={`scheme-${s.code}`}>
                   <div className="flex items-start justify-between gap-2 mb-2">
-                    <h4 className="font-display font-bold text-primary leading-snug">{s.name}</h4>
+                    <div>
+                      <h4 className="font-display font-bold text-primary leading-snug">{s.name}</h4>
+                      {s.name_hi && lang === 'hi' && <div className="text-xs text-muted-foreground mt-0.5">{s.name_hi}</div>}
+                    </div>
                     {s.primary && <span className="text-[10px] tracking-[0.15em] uppercase font-bold text-accent border border-accent/50 px-2 py-0.5 flex-shrink-0">Best Fit</span>}
                   </div>
                   <div className="text-xs text-muted-foreground mb-3">{s.agency}</div>
+
+                  {/* Highlighted Subsidy Badge */}
+                  {s.exact_subsidy_amount > 0 && (
+                    <div className="mb-3 inline-flex items-center gap-1.5 px-2.5 py-1 bg-secondary/15 text-secondary text-xs font-bold rounded">
+                      <CheckCircle2 size={13} /> {inr(s.exact_subsidy_amount)} Grant / Subsidy ({s.subsidy_rate || 'Govt. Grant'})
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-2 gap-y-2 gap-x-3 text-xs mb-3">
                     <div><span className="text-muted-foreground">Interest:</span> <span className="font-semibold">{s.interest_range}</span></div>
                     <div><span className="text-muted-foreground">Max loan:</span> <span className="font-semibold">{s.max_loan}</span></div>
@@ -461,6 +815,143 @@ export default function ReportView({ report, onReset }) {
             </div>
           </Section>
         )}
+
+        {/* HOW & WHERE TO GET LOAN & EMI (PROCESS GUIDE) */}
+        <Section
+          icon={Building2}
+          title={lang === 'hi' ? 'लोन एवं EMI कहाँ से लें और आवेदन प्रक्रिया' : 'Where & How to Get Your Loan / EMI'}
+          subtitle={lang === 'hi' ? 'आधिकारिक पोर्टल, बैंक एवं 5-चरणीय आवेदन प्रक्रिया' : 'Official Portals, Participating Banks & 5-Step Process'}
+          testId="section-loan-guide"
+        >
+          <div className="space-y-6">
+            {/* Top 3 Official Digital Portals to Apply */}
+            <div>
+              <div className="text-xs tracking-[0.2em] uppercase font-bold text-accent mb-3">
+                {lang === 'hi' ? '1. आधिकारिक सरकारी पोर्टल (सीधे ऑनलाइन आवेदन करें)' : '1. Official Government Portals (Apply Online Directly)'}
+              </div>
+              <div className="grid md:grid-cols-3 gap-3">
+                <div className="border border-border p-4 bg-background hover:border-primary transition-all">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="font-bold text-sm text-primary">JanSamarth Portal</span>
+                    <span className="text-[10px] bg-secondary/15 text-secondary px-2 py-0.5 rounded font-semibold">13+ Schemes</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    {lang === 'hi'
+                      ? 'भारत सरकार का एकीकृत क्रेडिट पोर्टल। 125+ बैंकों से तुरंत ऑनलाइन सैद्धांतिक स्वीकृति (In-principle Approval) प्राप्त करें।'
+                      : 'Government of India unified credit platform. Connects directly with 125+ partner banks for digital in-principle sanction.'}
+                  </p>
+                  <a
+                    href="https://www.jansamarth.in"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-accent underline"
+                  >
+                    jansamarth.in <ExternalLink size={12} />
+                  </a>
+                </div>
+
+                <div className="border border-secondary/50 bg-secondary/5 p-4 hover:border-secondary transition-all">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="font-bold text-sm text-primary">KVIC PMEGP e-Portal</span>
+                    <span className="text-[10px] bg-secondary text-secondary-foreground px-2 py-0.5 rounded font-semibold">Up to 35% Subsidy</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    {lang === 'hi'
+                      ? 'खादी एवं ग्रामोद्योग आयोग का आधिकारिक पोर्टल। PMEGP मार्जिन मनी सब्सिडी एवं बैंक ऋण के लिए सीधा ऑनलाइन फॉर्म भरें।'
+                      : 'Official portal by KVIC & Ministry of MSME. Direct application gateway for capital subsidy and bank loan tracking.'}
+                  </p>
+                  <a
+                    href="https://www.kviconline.gov.in/pmegpeportal"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-secondary hover:underline"
+                  >
+                    kviconline.gov.in <ExternalLink size={12} />
+                  </a>
+                </div>
+
+                <div className="border border-border p-4 bg-background hover:border-primary transition-all">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="font-bold text-sm text-primary">Udyam Mitra Portal</span>
+                    <span className="text-[10px] bg-accent/15 text-accent px-2 py-0.5 rounded font-semibold">SIDBI Powered</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    {lang === 'hi'
+                      ? 'सिडबी (SIDBI) का पोर्टल — मुद्रा लोन (MUDRA Shishu/Kishore) एवं स्टैंड-अप इंडिया ऋण के लिए आसान ऑनलाइन आवेदन।'
+                      : 'Operated by SIDBI for MUDRA, Stand-Up India, and MSME credit assistance without collateral.'}
+                  </p>
+                  <a
+                    href="https://udyammitra.in"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-accent underline"
+                  >
+                    udyammitra.in <ExternalLink size={12} />
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* Where to visit physically */}
+            <div className="border border-border/80 bg-muted/20 p-4">
+              <div className="text-xs tracking-[0.2em] uppercase font-bold text-primary mb-2">
+                {lang === 'hi' ? '2. ऑफ़लाइन कहाँ संपर्क करें (जिला / ब्लॉक स्तर)' : '2. Physical Touchpoints (District & Block Level)'}
+              </div>
+              <div className="grid sm:grid-cols-3 gap-3 text-xs">
+                <div>
+                  <span className="font-semibold text-primary block">Lead Bank & Rural Banks</span>
+                  <span className="text-muted-foreground">Any Public Sector Bank (SBI, PNB, BOB, Canara) or Regional Rural Bank (Gramin Bank) branch in your block.</span>
+                </div>
+                <div>
+                  <span className="font-semibold text-primary block">District Industries Centre (DIC)</span>
+                  <span className="text-muted-foreground">Visit the General Manager, DIC office at your district collectorate compound for offline sponsorship.</span>
+                </div>
+                <div>
+                  <span className="font-semibold text-primary block">KVIC / KVIB District Office</span>
+                  <span className="text-muted-foreground">District Khadi & Village Industries Board officers help verify project reports and assist rural applicants.</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Step-by-Step 5-Stage Loan & EMI Process */}
+            <div>
+              <div className="text-xs tracking-[0.2em] uppercase font-bold text-accent mb-3">
+                {lang === 'hi' ? '3. आवेदन से लेकर EMI शुरू होने तक की 5-चरणीय प्रक्रिया' : '3. Step-by-Step Process: Application to EMI Disbursement'}
+              </div>
+              <div className="grid md:grid-cols-5 gap-3 text-xs">
+                <div className="border border-border p-3.5 bg-background space-y-1">
+                  <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xs">1</div>
+                  <div className="font-bold text-primary pt-1">Prepare DPR & KYC</div>
+                  <p className="text-muted-foreground">Download this project advisory report. Gather Aadhaar, PAN, caste certificate, and unit rent/electricity proof.</p>
+                </div>
+
+                <div className="border border-border p-3.5 bg-background space-y-1">
+                  <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xs">2</div>
+                  <div className="font-bold text-primary pt-1">Apply Online</div>
+                  <p className="text-muted-foreground">Submit application on JanSamarth or PMEGP e-portal. Choose your nearest preferred lending bank branch.</p>
+                </div>
+
+                <div className="border border-border p-3.5 bg-background space-y-1">
+                  <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xs">3</div>
+                  <div className="font-bold text-primary pt-1">DTFC Scrutiny</div>
+                  <p className="text-muted-foreground">District Task Force Committee reviews feasibility within 15–20 days and forwards your file to the bank.</p>
+                </div>
+
+                <div className="border border-border p-3.5 bg-background space-y-1">
+                  <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xs">4</div>
+                  <div className="font-bold text-primary pt-1">Bank Sanction</div>
+                  <p className="text-muted-foreground">Bank verifies promoter margin, approves loan, and completes 5-10 day online EDP training certification.</p>
+                </div>
+
+                <div className="border border-secondary/50 p-3.5 bg-secondary/10 space-y-1">
+                  <div className="w-6 h-6 rounded-full bg-secondary text-secondary-foreground flex items-center justify-center font-bold text-xs">5</div>
+                  <div className="font-bold text-secondary pt-1">Subsidy & EMI</div>
+                  <p className="text-foreground">Subsidy is credited into a 3-yr locked TDR. 3–6 month moratorium begins, followed by auto-debited monthly EMI.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Section>
 
         {/* Nearby vendors */}
         {vendors.length > 0 && (

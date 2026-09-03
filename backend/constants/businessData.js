@@ -1,28 +1,70 @@
 const CATEGORY_PROFILE = {
-  'Dairy & Milk Products': { turnover: 0.28, raw: 0.48, labor: 0.12, inv: 0.05, opex: 0.09, other: 0.04, demand: 5 },
-  'Poultry Farming': { turnover: 0.30, raw: 0.52, labor: 0.10, inv: 0.06, opex: 0.08, other: 0.04, demand: 4 },
-  'Goat & Sheep Farming': { turnover: 0.20, raw: 0.42, labor: 0.10, inv: 0.05, opex: 0.07, other: 0.04, demand: 3 },
-  'Retail Kirana Store': { turnover: 0.55, raw: 0.72, labor: 0.06, inv: 0.08, opex: 0.06, other: 0.03, demand: 5 },
-  'Textiles & Handloom': { turnover: 0.22, raw: 0.46, labor: 0.16, inv: 0.06, opex: 0.08, other: 0.05, demand: 3 },
-  'Tailoring & Boutique': { turnover: 0.26, raw: 0.34, labor: 0.22, inv: 0.05, opex: 0.09, other: 0.05, demand: 4 },
-  'Beauty Parlour': { turnover: 0.30, raw: 0.22, labor: 0.26, inv: 0.05, opex: 0.14, other: 0.06, demand: 4 },
-  'Mobile Repair & Recharge Shop': { turnover: 0.40, raw: 0.40, labor: 0.14, inv: 0.10, opex: 0.10, other: 0.05, demand: 4 },
-  'Auto/E-Rickshaw Service': { turnover: 0.24, raw: 0.30, labor: 0.10, inv: 0.04, opex: 0.28, other: 0.06, demand: 4 },
-  'Bakery & Confectionery': { turnover: 0.32, raw: 0.44, labor: 0.16, inv: 0.05, opex: 0.11, other: 0.05, demand: 4 },
-  'Tea Stall / Snacks': { turnover: 0.45, raw: 0.42, labor: 0.14, inv: 0.05, opex: 0.13, other: 0.05, demand: 5 },
-  'Vegetable & Fruit Vending': { turnover: 0.60, raw: 0.74, labor: 0.06, inv: 0.06, opex: 0.06, other: 0.03, demand: 5 },
-  'Agri-Inputs (Seeds, Fertilizer)': { turnover: 0.38, raw: 0.70, labor: 0.06, inv: 0.10, opex: 0.06, other: 0.03, demand: 4 },
-  'Fisheries': { turnover: 0.26, raw: 0.46, labor: 0.12, inv: 0.06, opex: 0.10, other: 0.05, demand: 3 },
-  'Handicrafts': { turnover: 0.20, raw: 0.32, labor: 0.24, inv: 0.06, opex: 0.08, other: 0.06, demand: 3 },
-  'Beekeeping': { turnover: 0.22, raw: 0.28, labor: 0.14, inv: 0.06, opex: 0.09, other: 0.06, demand: 3 },
-  'Flour Mill': { turnover: 0.34, raw: 0.58, labor: 0.08, inv: 0.06, opex: 0.12, other: 0.04, demand: 4 },
-  'Papad / Pickle Making': { turnover: 0.28, raw: 0.40, labor: 0.20, inv: 0.06, opex: 0.08, other: 0.05, demand: 4 },
-  'Photocopy & CSC Centre': { turnover: 0.36, raw: 0.20, labor: 0.14, inv: 0.06, opex: 0.16, other: 0.06, demand: 4 },
-  'Two-Wheeler Repair': { turnover: 0.30, raw: 0.34, labor: 0.20, inv: 0.08, opex: 0.10, other: 0.05, demand: 4 },
+  'Dairy & Milk Products': { turnover: 0.28, raw: 0.48, labor: 0.12, inv: 0.05, opex: 0.09, other: 0.04, demand: 5, sector: 'food_processing', isLivestock: true, minProjectCost: 200000, recommendedCost: 600000, minMargin: 20000 },
+  'Poultry Farming': { turnover: 0.30, raw: 0.52, labor: 0.10, inv: 0.06, opex: 0.08, other: 0.04, demand: 4, sector: 'livestock', isLivestock: true, minProjectCost: 150000, recommendedCost: 500000, minMargin: 15000 },
+  'Goat & Sheep Farming': { turnover: 0.20, raw: 0.42, labor: 0.10, inv: 0.05, opex: 0.07, other: 0.04, demand: 3, sector: 'livestock', isLivestock: true, minProjectCost: 120000, recommendedCost: 400000, minMargin: 12000 },
+  'Retail Kirana Store': { turnover: 0.55, raw: 0.72, labor: 0.06, inv: 0.08, opex: 0.06, other: 0.03, demand: 5, sector: 'trading', minProjectCost: 100000, recommendedCost: 350000, minMargin: 10000 },
+  'Textiles & Handloom': { turnover: 0.22, raw: 0.46, labor: 0.16, inv: 0.06, opex: 0.08, other: 0.05, demand: 3, sector: 'manufacturing', minProjectCost: 120000, recommendedCost: 400000, minMargin: 12000 },
+  'Tailoring & Boutique': { turnover: 0.26, raw: 0.34, labor: 0.22, inv: 0.05, opex: 0.09, other: 0.05, demand: 4, sector: 'service', minProjectCost: 50000, recommendedCost: 150000, minMargin: 5000 },
+  'Beauty Parlour': { turnover: 0.30, raw: 0.22, labor: 0.26, inv: 0.05, opex: 0.14, other: 0.06, demand: 4, sector: 'service', minProjectCost: 60000, recommendedCost: 200000, minMargin: 6000 },
+  'Mobile Repair & Recharge Shop': { turnover: 0.40, raw: 0.40, labor: 0.14, inv: 0.10, opex: 0.10, other: 0.05, demand: 4, sector: 'service', minProjectCost: 70000, recommendedCost: 200000, minMargin: 7000 },
+  'Auto/E-Rickshaw Service': { turnover: 0.24, raw: 0.30, labor: 0.10, inv: 0.04, opex: 0.28, other: 0.06, demand: 4, sector: 'service', minProjectCost: 180000, recommendedCost: 300000, minMargin: 18000 },
+  'Bakery & Confectionery': { turnover: 0.32, raw: 0.44, labor: 0.16, inv: 0.05, opex: 0.11, other: 0.05, demand: 4, sector: 'food_processing', isFoodProcessing: true, minProjectCost: 150000, recommendedCost: 450000, minMargin: 15000 },
+  'Tea Stall / Snacks': { turnover: 0.45, raw: 0.42, labor: 0.14, inv: 0.05, opex: 0.13, other: 0.05, demand: 5, sector: 'service', minProjectCost: 30000, recommendedCost: 100000, minMargin: 5000 },
+  'Vegetable & Fruit Vending': { turnover: 0.60, raw: 0.74, labor: 0.06, inv: 0.06, opex: 0.06, other: 0.03, demand: 5, sector: 'trading', minProjectCost: 25000, recommendedCost: 80000, minMargin: 5000 },
+  'Agri-Inputs (Seeds, Fertilizer)': { turnover: 0.38, raw: 0.70, labor: 0.06, inv: 0.10, opex: 0.06, other: 0.03, demand: 4, sector: 'trading', minProjectCost: 150000, recommendedCost: 500000, minMargin: 15000 },
+  'Fisheries': { turnover: 0.26, raw: 0.46, labor: 0.12, inv: 0.06, opex: 0.10, other: 0.05, demand: 3, sector: 'food_processing', minProjectCost: 120000, recommendedCost: 400000, minMargin: 12000 },
+  'Handicrafts': { turnover: 0.20, raw: 0.32, labor: 0.24, inv: 0.06, opex: 0.08, other: 0.06, demand: 3, sector: 'manufacturing', minProjectCost: 50000, recommendedCost: 150000, minMargin: 5000 },
+  'Beekeeping': { turnover: 0.22, raw: 0.28, labor: 0.14, inv: 0.06, opex: 0.09, other: 0.06, demand: 3, sector: 'manufacturing', minProjectCost: 60000, recommendedCost: 180000, minMargin: 6000 },
+  'Flour Mill': { turnover: 0.34, raw: 0.58, labor: 0.08, inv: 0.06, opex: 0.12, other: 0.04, demand: 4, sector: 'food_processing', isFoodProcessing: true, minProjectCost: 150000, recommendedCost: 450000, minMargin: 15000 },
+  'Papad / Pickle Making': { turnover: 0.28, raw: 0.40, labor: 0.20, inv: 0.06, opex: 0.08, other: 0.05, demand: 4, sector: 'food_processing', isFoodProcessing: true, minProjectCost: 60000, recommendedCost: 180000, minMargin: 6000 },
+  'Photocopy & CSC Centre': { turnover: 0.36, raw: 0.20, labor: 0.14, inv: 0.06, opex: 0.16, other: 0.06, demand: 4, sector: 'service', minProjectCost: 80000, recommendedCost: 220000, minMargin: 8000 },
+  'Two-Wheeler Repair': { turnover: 0.30, raw: 0.34, labor: 0.20, inv: 0.08, opex: 0.10, other: 0.05, demand: 4, sector: 'service', minProjectCost: 90000, recommendedCost: 250000, minMargin: 9000 },
+};
+
+const EXPANSION_TYPES = {
+  machinery: {
+    id: 'machinery',
+    name: 'Machinery & Equipment Modernisation',
+    name_hi: 'मशीनरी एवं उपकरण आधुनिकीकरण',
+    description: 'Upgrade tools, semi-automatic machinery, cold storage or power backup to boost throughput.',
+    cost_multiplier: 0.45,
+    growth_multiplier: 0.40,
+    margin_boost: 3.5,
+  },
+  inventory: {
+    id: 'inventory',
+    name: 'Inventory & Bulk Stock Expansion',
+    name_hi: 'थोक इन्वेंटरी एवं कार्यशील पूंजी विस्तार',
+    description: 'Procure bulk stock at distributor rates, expand stock variety and reduce replenishment cycles.',
+    cost_multiplier: 0.30,
+    growth_multiplier: 0.35,
+    margin_boost: 2.5,
+  },
+  branch: {
+    id: 'branch',
+    name: 'Additional Counter / Mobile Delivery Unit',
+    name_hi: 'अतिरिक्त काउंटर / मोबाइल डिलीवरी यूनिट',
+    description: 'Open a second service point, purchase transport/delivery vehicle or tap neighbouring weekly haats.',
+    cost_multiplier: 0.65,
+    growth_multiplier: 0.70,
+    margin_boost: 4.0,
+  },
+  processing: {
+    id: 'processing',
+    name: 'Value-Addition & Branded Packaging',
+    name_hi: 'मूल्य संवर्धन एवं पैकेजिंग यूनिट',
+    description: 'Convert basic raw produce into packaged, branded, shelf-stable goods with higher profit margin.',
+    cost_multiplier: 0.55,
+    growth_multiplier: 0.55,
+    margin_boost: 6.0,
+  },
 };
 
 function getProfile(cat) {
-  return CATEGORY_PROFILE[cat] || { turnover: 0.30, raw: 0.42, labor: 0.14, inv: 0.06, opex: 0.10, other: 0.05, demand: 3 };
+  return CATEGORY_PROFILE[cat] || {
+    turnover: 0.30, raw: 0.42, labor: 0.14, inv: 0.06, opex: 0.10, other: 0.05, demand: 3,
+    sector: 'service', minProjectCost: 100000, recommendedCost: 300000, minMargin: 10000,
+  };
 }
 
 const STATE_PPP = {
@@ -65,6 +107,7 @@ const BUSINESS_CATEGORIES = Object.keys(CATEGORY_PROFILE);
 
 module.exports = {
   CATEGORY_PROFILE,
+  EXPANSION_TYPES,
   getProfile,
   STATE_PPP,
   CATEGORY_SUPPLY,
