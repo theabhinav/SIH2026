@@ -1,50 +1,25 @@
-import * as React from "react"
+import React from 'react';
 
-import { cn } from "@/lib/utils"
+export const Card = ({ className = '', ...props }) => (
+  <div className={`rounded-xl border border-gray-200 bg-white text-gray-900 shadow-sm ${className}`} {...props} />
+);
 
-const Card = React.forwardRef(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("rounded-xl border bg-card text-card-foreground shadow", className)}
-    {...props} />
-))
-Card.displayName = "Card"
+export const CardHeader = ({ className = '', ...props }) => (
+  <div className={`flex flex-col space-y-1.5 p-6 ${className}`} {...props} />
+);
 
-const CardHeader = React.forwardRef(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("flex flex-col space-y-1.5 p-6", className)}
-    {...props} />
-))
-CardHeader.displayName = "CardHeader"
+export const CardTitle = ({ className = '', ...props }) => (
+  <h3 className={`text-xl font-semibold leading-none tracking-tight text-gray-900 ${className}`} {...props} />
+);
 
-const CardTitle = React.forwardRef(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("font-semibold leading-none tracking-tight", className)}
-    {...props} />
-))
-CardTitle.displayName = "CardTitle"
+export const CardDescription = ({ className = '', ...props }) => (
+  <p className={`text-sm text-gray-500 ${className}`} {...props} />
+);
 
-const CardDescription = React.forwardRef(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("text-sm text-muted-foreground", className)}
-    {...props} />
-))
-CardDescription.displayName = "CardDescription"
+export const CardContent = ({ className = '', ...props }) => (
+  <div className={`p-6 pt-0 ${className}`} {...props} />
+);
 
-const CardContent = React.forwardRef(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
-))
-CardContent.displayName = "CardContent"
-
-const CardFooter = React.forwardRef(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("flex items-center p-6 pt-0", className)}
-    {...props} />
-))
-CardFooter.displayName = "CardFooter"
-
-export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent }
+export const CardFooter = ({ className = '', ...props }) => (
+  <div className={`flex items-center p-6 pt-0 ${className}`} {...props} />
+);
