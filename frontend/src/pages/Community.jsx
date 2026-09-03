@@ -56,8 +56,7 @@ export default function Community() {
     e.preventDefault();
     setLoading(true);
     try {
-      const payload = { ...form, name: form.shop_name || form.name };
-      const r = await axios.post(`${API}/shops`, payload, { headers: authHeaders });
+      const r = await axios.post(`${API}/shops`, form, { headers: authHeaders });
       toast.success(r.data.message || 'Shop added!');
       if (r.data.total_points != null) setPoints(r.data.total_points);
       setForm(empty);

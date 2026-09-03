@@ -5,6 +5,7 @@
   "main": "server.js",
   "scripts": {
     "build": "cd backend && npm install && cd ../frontend && npm install && npm run build",
-    "start": "node server.js"
+    "start": "node server.js",
+    "import-village-master": "node backend/scripts/importVillageMaster.js"
   }
 }

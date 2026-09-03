@@ -5,8 +5,7 @@ const POINTS = { SHOP_DETAILS: 10, SHOP_PHOTO: 5, SHOP_CONTACT: 3, UPVOTE_THRESH
 
 async function createShop(req, res) {
   try {
-    const { category, address, village, district, contact, photo, details } = req.body || {};
-    const name = req.body?.name || req.body?.shop_name;
+    const { name, category, address, village, district, contact, photo, details } = req.body || {};
     if (!name || !category || !village || !district) {
       return res.status(400).json({ detail: 'Shop name, category, village and district required' });
     }

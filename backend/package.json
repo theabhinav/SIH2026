@@ -6,7 +6,8 @@
   "scripts": {
     "build": "npm install",
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "import-village-master": "node scripts/importVillageMaster.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
