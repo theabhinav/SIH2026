@@ -11,6 +11,7 @@ const authRoutes = require('./routes/authRoutes');
 const advisoryRoutes = require('./routes/advisoryRoutes');
 const shopRoutes = require('./routes/shopRoutes');
 const metaRoutes = require('./routes/metaRoutes');
+const villageRoutes = require('./routes/villageRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 8001;
@@ -29,6 +30,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api', advisoryRoutes);
 app.use('/api', shopRoutes);
 app.use('/api', metaRoutes);
+app.use('/api/villages', villageRoutes);
 
 // Serve Frontend static files if built
 const frontendBuildPath = path.join(__dirname, '../frontend/build');

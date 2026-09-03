@@ -21,6 +21,7 @@ async function connectDB() {
     await db.collection('users').createIndex({ id: 1 }, { unique: true });
     await db.collection('reports').createIndex({ id: 1 }, { unique: true });
     await db.collection('reports').createIndex({ user_id: 1 });
+    await db.collection('villages').createIndex({ village_name_normalized: 1 }, { name: 'idx_village_name_norm' });
 
     console.log('✅ MongoDB Connected:', process.env.DB_NAME || 'grameen_udyog');
     return db;
