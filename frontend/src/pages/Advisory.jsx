@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/sonner';
 import { MapPin, IndianRupee, Briefcase, Sparkles, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react';
 import ReportView from '@/components/ReportView';
 

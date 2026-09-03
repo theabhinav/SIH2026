@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Link } from 'react-router-dom';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/sonner';
 import { Store, ChevronUp, Coins, Trophy, ImagePlus, Phone, MapPin, Camera, Award } from 'lucide-react';
 
 const RULES = [

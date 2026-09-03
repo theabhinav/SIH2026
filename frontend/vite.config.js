@@ -17,7 +17,12 @@ export default defineConfig(({ mode }) => {
       port: 3000,
       strictPort: true,
       allowedHosts: true,
-      hmr: { clientPort: 443, protocol: 'wss' },
+      proxy: {
+        '/api': {
+          target: env.REACT_APP_BACKEND_URL || 'http://localhost:8001',
+          changeOrigin: true,
+        },
+      },
     },
     build: {
       outDir: 'build',

@@ -4,7 +4,7 @@ import { useApp, API } from '@/context/AppContext';
 import { t } from '@/i18n';
 import { Button } from '@/components/ui/button';
 import { Link, useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/sonner';
 import { MapPin, TrendingUp, Trash2, Eye, Plus } from 'lucide-react';
 import ReportView from '@/components/ReportView';
 

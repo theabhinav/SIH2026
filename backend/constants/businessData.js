@@ -53,6 +53,10 @@ const CATEGORY_SUPPLY = {
   'Two-Wheeler Repair': { raw: [{ item: 'Spare Parts', unit: '₹/set' }, { item: 'Engine Oil & Lubricants', unit: '₹/litre' }, { item: 'Tyres & Tubes', unit: '₹/piece' }], machinery: [{ item: 'Air Compressor', unit: '₹/unit' }, { item: 'Tools & Hydraulic Lift', unit: '₹/set' }] },
 };
 
+const PACKAGING = [{ item: 'Printed Pouches / Cartons', unit: '₹/1000' }, { item: 'Labels & Stickers', unit: '₹/roll' }];
+const VENDOR_SURNAMES = ['Traders', 'Enterprises', 'Agencies', 'Suppliers', 'Distributors', 'Udyog', 'Bhandar', 'Stores'];
+const VENDOR_FIRST = ['Sri Balaji', 'Maa Durga', 'New Bharat', 'Gopal', 'Krishna', 'Shakti', 'Annapurna', 'Jai Kisan', 'Ganesh', 'Laxmi'];
+
 function getSupply(cat) {
   return CATEGORY_SUPPLY[cat] || { raw: [{ item: 'Primary Raw Material', unit: '₹/kg' }, { item: 'Secondary Inputs', unit: '₹/unit' }, { item: 'Consumables', unit: '₹/pack' }], machinery: [{ item: 'Core Equipment', unit: '₹/unit' }, { item: 'Support Tools', unit: '₹/set' }] };
 }
@@ -65,5 +69,8 @@ module.exports = {
   STATE_PPP,
   CATEGORY_SUPPLY,
   getSupply,
+  PACKAGING,
+  VENDOR_SURNAMES,
+  VENDOR_FIRST,
   BUSINESS_CATEGORIES,
 };
