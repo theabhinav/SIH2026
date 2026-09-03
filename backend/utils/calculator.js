@@ -61,7 +61,11 @@ function computeCapitalAdequacy(input, fin) {
     advice = `To start comfortably, arrange an additional ₹${shortfall.toLocaleString('en-IN')} or apply under PMEGP Special Category (Women/SC/ST/OBC/Rural) where the 35% margin money subsidy significantly cuts your required personal investment.`;
   }
 
-  const adequacyRatio = minRequiredMargin > 0 ? r2(providedMargin / minRequiredMargin) : 1;
+  const isSpecial = input.applicant_category !== 'general';
+  const subsidyPct = isSpecial ? 0.35 : 0.25;
+  const supportedProjectCost = Math.min(providedMargin * 10, 5000000);
+  const subsidyEst = Math.round(supportedProjectCost * subsidyPct);
+
   const minLoanRequired = Math.max(0, Math.round(minProjectCost - providedMargin));
   const isLoanEligible = isEnough;
   const loanEligibilityText = isEnough ? 'Eligible for Bank Loan' : 'Ineligible — Margin Shortfall';

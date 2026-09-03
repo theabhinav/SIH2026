@@ -56,7 +56,8 @@ export default function Community() {
     e.preventDefault();
     setLoading(true);
     try {
-      const r = await axios.post(`${API}/shops`, form, { headers: authHeaders });
+      const payload = { ...form, name: form.shop_name || form.name };
+      const r = await axios.post(`${API}/shops`, payload, { headers: authHeaders });
       toast.success(r.data.message || 'Shop added!');
       if (r.data.total_points != null) setPoints(r.data.total_points);
       setForm(empty);
@@ -90,14 +91,19 @@ export default function Community() {
   return (
     <div className="max-w-7xl mx-auto px-6 lg:px-10 py-12" data-testid="community-page">
       <div className="mb-10">
-        <div className="text-xs tracking-[0.3em] uppercase text-accent font-bold mb-3">Community Map</div>
-        <h1 className="font-display text-3xl lg:text-5xl tracking-tight font-extrabold text-primary">Local Shops & Suppliers</h1>
-        <p className="text-muted-foreground mt-3 max-w-2xl">Add shops and suppliers near you to help other entrepreneurs build their supply chain. Earn points for every contribution — and more when the community upvotes you.</p>
+        <div className="text-xs tracking-[0.3em] uppercase text-accent font-bold mb-3">{t(lang, 'communityMap')}</div>
+        <h1 className="font-display text-3xl lg:text-5xl tracking-tight font-extrabold text-primary">{t(lang, 'localShopsSuppliers')}</h1>
+        <p className="text-muted-foreground mt-3 max-w-2xl">{t(lang, 'communitySub')}</p>
       </div>
 
       {/* Points rules */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-10">
-        {RULES.map((r) => (
+        {[
+          { pts: '+10', label: t(lang, 'ruleAddShop') },
+          { pts: '+5', label: t(lang, 'rulePhoto') },
+          { pts: '+3', label: t(lang, 'ruleContact') },
+          { pts: '🔓', label: t(lang, 'ruleUnlock') },
+        ].map((r) => (
           <div key={r.label} className="border border-border bg-card p-4 flex items-center gap-3">
             <div className="w-10 h-10 bg-accent/10 text-accent flex items-center justify-center font-display font-black tabular-nums">{r.pts}</div>
             <div className="text-sm font-medium">{r.label}</div>
@@ -115,62 +121,62 @@ export default function Community() {
                 <h3 className="font-display font-bold text-lg text-primary">{t(lang, 'addShop')}</h3>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Shop / Supplier Name *</Label>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t(lang, 'shopName')} *</Label>
                 <Input required value={form.shop_name} onChange={(e) => setField('shop_name', e.target.value)} data-testid="shop-name-input" />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Category *</Label>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t(lang, 'category')} *</Label>
                 <Select value={form.category} onValueChange={(v) => setField('category', v)}>
-                  <SelectTrigger data-testid="shop-category-select"><SelectValue placeholder="Select category" /></SelectTrigger>
+                  <SelectTrigger data-testid="shop-category-select"><SelectValue placeholder={`${t(lang, 'selectPrefix')} ${t(lang, 'category')}`} /></SelectTrigger>
                   <SelectContent>{categories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">What do they supply?</Label>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t(lang, 'suppliesOffered')}</Label>
                 <Textarea rows={2} value={form.supplies} onChange={(e) => setField('supplies', e.target.value)} placeholder="e.g. cattle feed, milk cans" data-testid="shop-supplies-input" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">Price info</Label>
+                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t(lang, 'priceIndications')}</Label>
                   <Input value={form.price_info} onChange={(e) => setField('price_info', e.target.value)} placeholder="₹/kg, ₹/unit" data-testid="shop-price-input" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">Contact</Label>
+                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t(lang, 'contactNumber')}</Label>
                   <Input value={form.contact} onChange={(e) => setField('contact', e.target.value)} placeholder="Phone" data-testid="shop-contact-input" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">State</Label>
+                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t(lang, 'state')}</Label>
                   <Select value={form.state} onValueChange={(v) => setField('state', v)}>
-                    <SelectTrigger data-testid="shop-state-select"><SelectValue placeholder="State" /></SelectTrigger>
+                    <SelectTrigger data-testid="shop-state-select"><SelectValue placeholder={t(lang, 'state')} /></SelectTrigger>
                     <SelectContent>{Object.keys(locations).map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">District</Label>
+                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t(lang, 'district')}</Label>
                   <Select value={form.district} onValueChange={(v) => setField('district', v)} disabled={!form.state}>
-                    <SelectTrigger data-testid="shop-district-select"><SelectValue placeholder="District" /></SelectTrigger>
+                    <SelectTrigger data-testid="shop-district-select"><SelectValue placeholder={t(lang, 'district')} /></SelectTrigger>
                     <SelectContent>{districts.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">Block</Label>
+                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t(lang, 'block')}</Label>
                   <Select value={form.block} onValueChange={(v) => setField('block', v)} disabled={!form.district}>
-                    <SelectTrigger data-testid="shop-block-select"><SelectValue placeholder="Block" /></SelectTrigger>
+                    <SelectTrigger data-testid="shop-block-select"><SelectValue placeholder={t(lang, 'block')} /></SelectTrigger>
                     <SelectContent>{blocks.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">Village</Label>
+                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t(lang, 'village')}</Label>
                   <Select value={form.village} onValueChange={(v) => setField('village', v)} disabled={!form.block}>
-                    <SelectTrigger data-testid="shop-village-select"><SelectValue placeholder="Village" /></SelectTrigger>
+                    <SelectTrigger data-testid="shop-village-select"><SelectValue placeholder={t(lang, 'village')} /></SelectTrigger>
                     <SelectContent>{villages.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Address / Landmark</Label>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">{t(lang, 'addressOptional')}</Label>
                 <Input value={form.address} onChange={(e) => setField('address', e.target.value)} data-testid="shop-address-input" />
               </div>
               <div className="space-y-2">

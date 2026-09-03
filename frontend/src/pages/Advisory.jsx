@@ -258,25 +258,82 @@ export default function Advisory() {
   }, [currentBenchmark, form.applicant_category, form.margin_capital, form.loan_mode, form.tenure_years]);
 
   const newBusinessMessage = useMemo(() => {
+    const marginStr = form.margin_capital.toLocaleString('en-IN');
+    const minMarginStr = newBusinessAdequacy.minMargin.toLocaleString('en-IN');
+    const minLoanStr = newBusinessAdequacy.minLoanNeeded.toLocaleString('en-IN');
+    const maxLoanStr = (form.margin_capital * 9).toLocaleString('en-IN');
+    const shortfallStr = newBusinessAdequacy.shortfall.toLocaleString('en-IN');
+
     if (newBusinessAdequacy.isEnough) {
-      return lang === 'hi'
-        ? `आपकी ₹${form.margin_capital.toLocaleString('en-IN')} की पूंजी 10% न्यूनतम मार्जिन (₹${newBusinessAdequacy.minMargin.toLocaleString('en-IN')}) को पूरा करती है। आप बैंक ऋण के लिए पूर्णतः पात्र (ELIGIBLE) हैं। इस व्यवसाय को शुरू करने के लिए न्यूनतम ₹${newBusinessAdequacy.minLoanNeeded.toLocaleString('en-IN')} का बैंक ऋण आवश्यक है (और आप ₹${(form.margin_capital * 9).toLocaleString('en-IN')} तक के अधिकतम ऋण के लिए पात्र हैं)।`
-        : `Your capital of ₹${form.margin_capital.toLocaleString('en-IN')} satisfies the minimum margin requirement (₹${newBusinessAdequacy.minMargin.toLocaleString('en-IN')}). You are ELIGIBLE for a bank loan: minimum loan required to start is ₹${newBusinessAdequacy.minLoanNeeded.toLocaleString('en-IN')} (and up to ₹${(form.margin_capital * 9).toLocaleString('en-IN')} based on scale).`;
+      switch (lang) {
+        case 'hi':
+          return `आपकी ₹${marginStr} की पूंजी 10% न्यूनतम मार्जिन (₹${minMarginStr}) को पूरा करती है। आप बैंक ऋण के लिए पूर्णतः पात्र (ELIGIBLE) हैं। इस व्यवसाय को शुरू करने के लिए न्यूनतम ₹${minLoanStr} का बैंक ऋण आवश्यक है (और आप ₹${maxLoanStr} तक के अधिकतम ऋण के लिए पात्र हैं)।`;
+        case 'mr':
+          return `तुमचे ₹${marginStr} चे भांडवल 10% किमान मार्जिन (₹${minMarginStr}) पूर्ण करते. तुम्ही बँक कर्जासाठी पूर्णपणे पात्र (ELIGIBLE) आहात. हा व्यवसाय सुरू करण्यासाठी किमान ₹${minLoanStr} बँक कर्ज आवश्यक आहे (आणि तुम्ही ₹${maxLoanStr} पर्यंतच्या कर्जासाठी पात्र आहात).`;
+        case 'ta':
+          return `உங்கள் ₹${marginStr} முதலீடு 10% குறைந்தபட்ச மூலதனத்தை (₹${minMarginStr}) பூர்த்தி செய்கிறது. நீங்கள் வங்கிக் கடனுக்கு முழுத் தகுதியுடையவர் (ELIGIBLE). இத்தொழிலைத் தொடங்க குறைந்தபட்சம் ₹${minLoanStr} கடன் தேவை (மற்றும் அதிகபட்சம் ₹${maxLoanStr} வரை பெறலாம்).`;
+        case 'te':
+          return `మీ ₹${marginStr} మూలధనం 10% కనీస మార్జిన్ (₹${minMarginStr}) అవసరాన్ని తీరుస్తుంది. మీరు బ్యాంకు రుణానికి పూర్తిగా అర్హులు (ELIGIBLE). ఈ వ్యాపారాన్ని ప్రారంభించడానికి కనీసం ₹${minLoanStr} బ్యాంకు రుణం అవసరం (మరియు గరిష్టంగా ₹${maxLoanStr} వరకు పొందవచ్చు).`;
+        case 'bn':
+          return `আপনার ₹${marginStr} মূলধন ১০% ন্যূনতম মার্জিন (₹${minMarginStr}) পূরণ করে। আপনি ব্যাংক ঋণের জন্য সম্পূর্ণ যোগ্য (ELIGIBLE)। এই ব্যবসা শুরু করতে ন্যূনতম ₹${minLoanStr} ব্যাংক ঋণ প্রয়োজন (এবং সর্বোচ্চ ₹${maxLoanStr} পর্যন্ত ঋণ পেতে পারেন)।`;
+        default:
+          return `Your capital of ₹${marginStr} satisfies the minimum margin requirement (₹${minMarginStr}). You are ELIGIBLE for a bank loan: minimum loan required to start is ₹${minLoanStr} (and up to ₹${maxLoanStr} based on scale).`;
+      }
     }
-    return lang === 'hi'
-      ? `ऋण पात्रता: आप वर्तमान में बैंक ऋण के लिए अपात्र हैं क्योंकि पूंजी में ₹${newBusinessAdequacy.shortfall.toLocaleString('en-IN')} की कमी है। न्यूनतम ₹${newBusinessAdequacy.minLoanNeeded.toLocaleString('en-IN')} का ऋण प्राप्त करने के लिए बैंक को न्यूनतम ₹${newBusinessAdequacy.minMargin.toLocaleString('en-IN')} मार्जिन अनिवार्य रूप से चाहिए।`
-      : `Loan Eligibility: NOT YET ELIGIBLE due to a ₹${newBusinessAdequacy.shortfall.toLocaleString('en-IN')} margin shortfall. To unlock the minimum required loan of ₹${newBusinessAdequacy.minLoanNeeded.toLocaleString('en-IN')}, banks mandate at least ₹${newBusinessAdequacy.minMargin.toLocaleString('en-IN')} promoter margin.`;
+
+    switch (lang) {
+      case 'hi':
+        return `ऋण पात्रता: आप वर्तमान में बैंक ऋण के लिए अपात्र हैं क्योंकि पूंजी में ₹${shortfallStr} की कमी है। न्यूनतम ₹${minLoanStr} का ऋण प्राप्त करने के लिए बैंक को न्यूनतम ₹${minMarginStr} मार्जिन अनिवार्य रूप से चाहिए।`;
+      case 'mr':
+        return `कर्ज पात्रता: भांडवलात ₹${shortfallStr} ची तूट असल्याने तुम्ही सध्या बँक कर्जासाठी अपात्र आहात. किमान ₹${minLoanStr} कर्ज मिळवण्यासाठी बँकेला किमान ₹${minMarginStr} स्वतःचे भांडवल आवश्यक आहे.`;
+      case 'ta':
+        return `கடன் தகுதி: மூலதனத்தில் ₹${shortfallStr} பற்றாக்குறை உள்ளதால் தற்போது கடன் பெற இயலாது. குறைந்தபட்ச ₹${minLoanStr} கடன் பெற வங்கிகளுக்குக் குறைந்தபட்சம் ₹${minMarginStr} சொந்த முதலீடு தேவை.`;
+      case 'te':
+        return `రుణ అర్హత: మూలధనంలో ₹${shortfallStr} లోటు ఉన్నందున మీరు ప్రస్తుతం రుణానికి అర్హులు కాదు. కనీస ₹${minLoanStr} రుణం పొందడానికి బ్యాంకులకు కనీసం ₹${minMarginStr} మార్జిన్ తప్పనిసరిగా అవసరం.`;
+      case 'bn':
+        return `ঋণ যোগ্যতা: মূলধনে ₹${shortfallStr} ঘাটতি থাকায় আপনি বর্তমানে ব্যাংক ঋণের জন্য যোগ্য নন। ন্যূনতম ₹${minLoanStr} ঋণ পেতে ব্যাংকের জন্য অন্তত ₹${minMarginStr} মার্জিন থাকা আবশ্যক।`;
+      default:
+        return `Loan Eligibility: NOT YET ELIGIBLE due to a ₹${shortfallStr} margin shortfall. To unlock the minimum required loan of ₹${minLoanStr}, banks mandate at least ₹${minMarginStr} promoter margin.`;
+    }
   }, [newBusinessAdequacy, form.margin_capital, form.business_category, lang]);
 
   const expansionMessage = useMemo(() => {
+    const marginStr = form.margin_capital.toLocaleString('en-IN');
+    const reqMarginStr = expansionEconomics.requiredMargin.toLocaleString('en-IN');
+    const surplusStr = expansionEconomics.surplus.toLocaleString('en-IN');
+    const shortfallStr = expansionEconomics.shortfall.toLocaleString('en-IN');
+
     if (expansionEconomics.isEnough) {
-      return lang === 'hi'
-        ? `आपकी ₹${form.margin_capital.toLocaleString('en-IN')} की पूंजी इस विस्तार की आवश्यक ₹${expansionEconomics.requiredMargin.toLocaleString('en-IN')} मार्जिन को आसानी से पूरा करती है (अतिरिक्त बफर: ₹${expansionEconomics.surplus.toLocaleString('en-IN')})।`
-        : `Your available capital of ₹${form.margin_capital.toLocaleString('en-IN')} fully covers the required ₹${expansionEconomics.requiredMargin.toLocaleString('en-IN')} margin contribution.`;
+      switch (lang) {
+        case 'hi':
+          return `आपकी ₹${marginStr} की पूंजी इस विस्तार की आवश्यक ₹${reqMarginStr} मार्जिन को आसानी से पूरा करती है (अतिरिक्त बफर: ₹${surplusStr})।`;
+        case 'mr':
+          return `तुमचे ₹${marginStr} चे भांडवल विस्तारासाठी आवश्यक ₹${reqMarginStr} मार्जिन सहज पूर्ण करते (अतिरिक्त बफर: ₹${surplusStr}).`;
+        case 'ta':
+          return `உங்கள் ₹${marginStr} முதலீடு இந்த விரிவாக்கத்திற்குத் தேவையான ₹${reqMarginStr} பங்கை முழுமையாகப் பூர்த்தி செய்கிறது (கூடுதல் இருப்பு: ₹${surplusStr}).`;
+        case 'te':
+          return `మీ ₹${marginStr} మూలధనం ఈ విస్తరణకు అవసరమైన ₹${reqMarginStr} మార్జిన్‌ను సులభంగా పూర్తి చేస్తుంది (అదనపు బఫర్: ₹${surplusStr}).`;
+        case 'bn':
+          return `আপনার ₹${marginStr} মূলধন এই সম্প্রসারণের জন্য প্রয়োজনীয় ₹${reqMarginStr} মার্জিন সহজেই পূরণ করে (অতিরিক্ত বাফার: ₹${surplusStr})।`;
+        default:
+          return `Your available capital of ₹${marginStr} fully covers the required ₹${reqMarginStr} margin contribution (surplus buffer: ₹${surplusStr}).`;
+      }
     }
-    return lang === 'hi'
-      ? `इस विस्तार परियोजना (लागत: ₹${expansionEconomics.expansionProjectCost.toLocaleString('en-IN')}) के लिए ₹${expansionEconomics.requiredMargin.toLocaleString('en-IN')} मार्जिन चाहिए। ₹${expansionEconomics.shortfall.toLocaleString('en-IN')} और जोड़ें अथवा 15% सरकारी सब्सिडी का लाभ उठाएं।`
-      : `This expansion requires ₹${expansionEconomics.requiredMargin.toLocaleString('en-IN')} margin. You are short by ₹${expansionEconomics.shortfall.toLocaleString('en-IN')}, which can be supported via PMEGP 2nd Loan capital subsidies.`;
+
+    switch (lang) {
+      case 'hi':
+        return `विस्तार मार्जिन में कमी: आपको इस विस्तार परियोजना के लिए ₹${shortfallStr} और पूंजी की आवश्यकता है।`;
+      case 'mr':
+        return `विस्तार भांडवलात तूट: या विस्तार प्रकल्पासाठी तुम्हाला आणखी ₹${shortfallStr} भांडवलाची गरज आहे.`;
+      case 'ta':
+        return `விரிவாக்க முதலீட்டுப் பற்றாக்குறை: இந்த விரிவாக்கத் திட்டத்திற்கு மேலும் ₹${shortfallStr} முதலீடு தேவைப்படுகிறது.`;
+      case 'te':
+        return `విస్తరణ మూలధన లోటు: ఈ ప్రాజెక్ట్ కోసం మీకు ఇంకా ₹${shortfallStr} మూలధనం అవసరం.`;
+      case 'bn':
+        return `সম্প্রসারণ মূলধনের ঘাটতি: এই প্রকল্পের জন্য আপনার আরও ₹${shortfallStr} মূলধন প্রয়োজন।`;
+      default:
+        return `Expansion Margin Shortfall: You need ₹${shortfallStr} more equity capital to qualify for this expansion project.`;
+    }
   }, [expansionEconomics, form.margin_capital, lang]);
 
   const canNext = {
@@ -326,7 +383,7 @@ export default function Advisory() {
   return (
     <div className="max-w-5xl mx-auto px-6 lg:px-10 py-12 lg:py-16">
       <div className="mb-8">
-        <div className="text-xs tracking-[0.3em] uppercase text-accent font-bold mb-2">AI Advisory Engine</div>
+        <div className="text-xs tracking-[0.3em] uppercase text-accent font-bold mb-2">{t(lang, 'aiAdvisory')}</div>
         <h1 className="font-display text-3xl lg:text-5xl tracking-tight font-extrabold text-primary">
           {form.advisory_type === 'expansion' ? (lang === 'hi' ? 'व्यवसाय विस्तार एवं पूंजी सलाह' : 'Business Extension Advisory') : t(lang, 'startAdvisory')}
         </h1>
@@ -349,7 +406,7 @@ export default function Advisory() {
             } p-3 sm:p-4 transition-colors`}
           >
             <s.icon size={16} strokeWidth={1.75} className="mb-2" />
-            <div className="text-[10px] tracking-[0.2em] uppercase font-bold">Step {s.n}</div>
+            <div className="text-[10px] tracking-[0.2em] uppercase font-bold">{t(lang, 'step')} {s.n}</div>
             <div className="text-xs sm:text-sm font-semibold mt-1 truncate">{s.title}</div>
           </div>
         ))}
@@ -367,7 +424,7 @@ export default function Advisory() {
               <div className="grid md:grid-cols-2 gap-4">
                 <button
                   type="button"
-                  onClick={() => setForm({ ...form, advisory_type: 'new' })}
+                  onClick={() => setForm((prev) => ({ ...prev, advisory_type: 'new' }))}
                   className={`text-left border p-5 transition-all ${
                     form.advisory_type === 'new'
                       ? 'border-primary bg-primary/5 ring-2 ring-primary shadow-sm'
@@ -391,7 +448,7 @@ export default function Advisory() {
 
                 <button
                   type="button"
-                  onClick={() => setForm({ ...form, advisory_type: 'expansion' })}
+                  onClick={() => setForm((prev) => ({ ...prev, advisory_type: 'expansion' }))}
                   className={`text-left border p-5 transition-all ${
                     form.advisory_type === 'expansion'
                       ? 'border-accent bg-accent/5 ring-2 ring-accent shadow-sm'
@@ -415,7 +472,7 @@ export default function Advisory() {
               </div>
             </div>
 
-            {/* Entrepreneur Category (For Max Subsidy benefit) */}
+            {/* Entrepreneur Category (For Max Subsidy benefit in Step 1) */}
             <div className="border border-border p-5 bg-card rounded-lg space-y-3" data-testid="entrepreneur-category-section">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div>
@@ -423,13 +480,11 @@ export default function Advisory() {
                     {t(lang, 'applicantCategory')}
                   </Label>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {lang === 'hi'
-                      ? 'अपनी श्रेणी चुनें — सरकार विशेष श्रेणी को 35% और सामान्य श्रेणी को 25% सब्सिडी देती है।'
-                      : 'Select your category — PMEGP grants 35% subsidy for special categories and 25% for general.'}
+                    {t(lang, 'specialCategoryDesc')}
                   </p>
                 </div>
                 <span className="text-[11px] text-secondary font-bold flex items-center gap-1 bg-secondary/15 px-2.5 py-1 rounded-full">
-                  <ShieldCheck size={13} /> {lang === 'hi' ? 'PMEGP सब्सिडी स्तर' : 'PMEGP Subsidy Tier'}
+                  <ShieldCheck size={13} /> {t(lang, 'pmegpSubsidyTier')}
                 </span>
               </div>
 
@@ -448,16 +503,14 @@ export default function Advisory() {
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="font-display font-bold text-sm text-primary flex items-center gap-1.5">
-                        ⭐ {lang === 'hi' ? 'विशेष श्रेणी' : 'Special Category'}
+                        ⭐ {t(lang, 'specialCategory35')}
                       </span>
                       <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-secondary text-secondary-foreground">
-                        35% Subsidy
+                        35%
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      {lang === 'hi'
-                        ? 'महिलाएं, SC / ST / OBC, अल्पसंख्यक, पूर्व सैनिक, दिव्यांग एवं ग्रामीण उद्यमी'
-                        : 'Women, SC, ST, OBC, Minorities, Ex-Servicemen, PwD & Rural Entrepreneurs'}
+                      {t(lang, 'specialCategoryDesc')}
                     </p>
                   </div>
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${
@@ -483,16 +536,14 @@ export default function Advisory() {
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="font-display font-bold text-sm text-primary flex items-center gap-1.5">
-                        👤 {lang === 'hi' ? 'सामान्य श्रेणी' : 'General Category'}
+                        👤 {t(lang, 'generalCategory25')}
                       </span>
                       <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-primary/15 text-primary">
-                        25% Subsidy
+                        25%
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground leading-relaxed">
-                      {lang === 'hi'
-                        ? 'सामान्य वर्ग (शहरी पुरुष उद्यमी)'
-                        : 'General category male entrepreneurs in urban areas'}
+                      {t(lang, 'generalCategoryDesc')}
                     </p>
                   </div>
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${
@@ -506,51 +557,35 @@ export default function Advisory() {
               </div>
             </div>
 
-            {/* Location form */}
-            <div>
-              <h2 className="font-display text-xl font-bold text-primary tracking-tight mb-1">
-                {lang === 'hi' ? 'आपकी इकाई का स्थान कहां है?' : 'Where is your enterprise located?'}
-              </h2>
-              <p className="text-xs text-muted-foreground mb-4">
-                {lang === 'hi' ? 'AI स्थानीय ग्राम पंचायत के आधार पर बाजार एवं आपूर्ति श्रृंखला का विश्लेषण करेगा।' : 'The analytical engine anchors local competition, mandi proximity and purchasing power.'}
-              </p>
-              <div className="grid md:grid-cols-2 gap-4">
+            <div className="space-y-6">
+              <div>
+                <h2 className="font-display text-2xl font-extrabold text-primary tracking-tight">{t(lang, 'whereIsEnterprise')}</h2>
+                <p className="text-sm text-muted-foreground mt-2">{t(lang, 'panchayatAnchor')}</p>
+              </div>
+              <div className="grid md:grid-cols-2 gap-6">
                 {[
                   ['state', t(lang, 'state'), states],
                   ['district', t(lang, 'district'), districts],
                   ['block', t(lang, 'block'), blocks],
                   ['village', t(lang, 'village'), villages],
                 ].map(([key, label, opts]) => (
-                  <div key={key} className="space-y-1.5">
-                    <Label className="text-xs tracking-[0.15em] uppercase font-bold text-muted-foreground">{label}</Label>
+                  <div key={key} className="space-y-2">
+                    <Label className="text-xs tracking-[0.2em] uppercase font-bold text-muted-foreground">{label}</Label>
                     <Select
                       value={form[key]}
                       onValueChange={(v) => {
                         const upd = { ...form, [key]: v };
-                        if (key === 'state') {
-                          upd.district = '';
-                          upd.block = '';
-                          upd.village = '';
-                        }
-                        if (key === 'district') {
-                          upd.block = '';
-                          upd.village = '';
-                        }
-                        if (key === 'block') {
-                          upd.village = '';
-                        }
+                        if (key === 'state') { upd.district = ''; upd.block = ''; upd.village = ''; }
+                        if (key === 'district') { upd.block = ''; upd.village = ''; }
+                        if (key === 'block') { upd.village = ''; }
                         setForm(upd);
                       }}
                     >
-                      <SelectTrigger className="h-11" data-testid={`select-${key}`}>
-                        <SelectValue placeholder={`Select ${label}`} />
+                      <SelectTrigger className="h-12" data-testid={`select-${key}`}>
+                        <SelectValue placeholder={`${t(lang, 'selectPrefix')} ${label}`} />
                       </SelectTrigger>
                       <SelectContent>
-                        {opts.map((o) => (
-                          <SelectItem key={o} value={o}>
-                            {o}
-                          </SelectItem>
-                        ))}
+                        {opts.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -656,15 +691,13 @@ export default function Advisory() {
               <>
                 <div>
                   <div className="flex items-center gap-2 text-xs tracking-[0.2em] uppercase text-accent font-bold mb-1">
-                    <Zap size={14} /> Capital Sufficiency & Scheme Subsidy
+                    <Zap size={14} /> {t(lang, 'capitalSufficiencyTitle')}
                   </div>
                   <h2 className="font-display text-2xl font-extrabold text-primary tracking-tight">
-                    How much capital can you invest?
+                    {t(lang, 'howMuchMargin')}
                   </h2>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {lang === 'hi'
-                      ? 'अपनी उपलब्ध पूंजी दर्ज करें। सिस्टम तुरंत बताएगा कि यह पूंजी आपके व्यवसाय के लिए पर्याप्त है या नहीं, और कितनी सरकारी सब्सिडी मिलेगी।'
-                      : 'Enter your available margin capital. The AI checks if it is sufficient for your chosen enterprise and calculates eligible subsidies.'}
+                    {t(lang, 'marginExplanation')}
                   </p>
                 </div>
 
@@ -672,12 +705,12 @@ export default function Advisory() {
                 <div className="flex items-center justify-between flex-wrap gap-3 p-3.5 border border-border bg-card rounded-lg text-xs" data-testid="step3-entrepreneur-category">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-primary">
-                      {lang === 'hi' ? 'आवेदक श्रेणी (सब्सिडी हेतु):' : 'Applicant Category:'}
+                      {t(lang, 'applicantCategoryLabel')}
                     </span>
                     <span className="text-muted-foreground font-medium">
                       {form.applicant_category === 'special'
-                        ? (lang === 'hi' ? 'विशेष श्रेणी (35% सब्सिडी लागू)' : 'Special Category (35% Subsidy)')
-                        : (lang === 'hi' ? 'सामान्य श्रेणी (25% सब्सिडी लागू)' : 'General Category (25% Subsidy)')}
+                        ? t(lang, 'specialCategory35')
+                        : t(lang, 'generalCategory25')}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -692,7 +725,7 @@ export default function Advisory() {
                       data-testid="step3-category-special"
                     >
                       {form.applicant_category === 'special' && <CheckCircle2 size={13} />}
-                      ⭐ {lang === 'hi' ? 'विशेष श्रेणी (35%)' : 'Special (35%)'}
+                      ⭐ {t(lang, 'specialCategory35')}
                     </button>
                     <button
                       type="button"
@@ -705,7 +738,7 @@ export default function Advisory() {
                       data-testid="step3-category-general"
                     >
                       {form.applicant_category === 'general' && <CheckCircle2 size={13} />}
-                      👤 {lang === 'hi' ? 'सामान्य श्रेणी (25%)' : 'General (25%)'}
+                      👤 {t(lang, 'generalCategory25')}
                     </button>
                   </div>
                 </div>
@@ -718,9 +751,7 @@ export default function Advisory() {
                         {t(lang, 'marginCapital')}
                       </div>
                       <div className="text-xs text-muted-foreground mt-0.5">
-                        {lang === 'hi'
-                          ? 'अपनी पूंजी की राशि यहाँ दर्ज करें या स्लाइडर से चुनें:'
-                          : 'Enter your available capital or drag the slider:'}
+                        {t(lang, 'enterCapitalOrSlider')}
                       </div>
                     </div>
 
@@ -764,7 +795,7 @@ export default function Advisory() {
 
                   {/* Quick Preset Buttons */}
                   <div className="flex gap-2 flex-wrap items-center">
-                    <span className="text-xs text-muted-foreground font-semibold">Quick select:</span>
+                    <span className="text-xs text-muted-foreground font-semibold">{t(lang, 'quickSelect')}</span>
                     {[10000, 25000, 50000, 100000, 200000, 500000].map((v) => (
                       <button
                         key={v}
@@ -787,14 +818,14 @@ export default function Advisory() {
                     <div className="flex justify-between items-center text-xs sm:text-sm">
                       <span className="font-bold text-primary flex items-center gap-1.5">
                         <Zap size={16} className="text-accent" />
-                        {lang === 'hi' ? 'व्यवसाय पूंजी पर्याप्तता स्तर' : 'Capital Adequacy vs Business Benchmark'}
+                        {t(lang, 'capitalBenchmark')}
                       </span>
                       <span className="font-black tabular-nums">
                         {newBusinessAdequacy.isEnough ? (
-                          <span className="text-secondary font-black text-sm">🟢 100% Sufficient</span>
+                          <span className="text-secondary font-black text-sm">🟢 {t(lang, 'sufficientBadge')}</span>
                         ) : (
                           <span className="text-destructive font-black text-sm">
-                            🛑 {Math.min(99, Math.round((form.margin_capital / newBusinessAdequacy.minMargin) * 100))}% (Shortfall ₹{newBusinessAdequacy.shortfall.toLocaleString('en-IN')})
+                            🛑 {Math.min(99, Math.round((form.margin_capital / newBusinessAdequacy.minMargin) * 100))}% ({t(lang, 'shortfallBadge')} ₹{newBusinessAdequacy.shortfall.toLocaleString('en-IN')})
                           </span>
                         )}
                       </span>
@@ -806,13 +837,13 @@ export default function Advisory() {
                       <div
                         className="h-full bg-destructive/20 border-r border-background"
                         style={{ width: '50%' }}
-                        title={`Below ₹${newBusinessAdequacy.minMargin.toLocaleString('en-IN')}: Shortfall`}
+                        title={`Below ₹${newBusinessAdequacy.minMargin.toLocaleString('en-IN')}: ${t(lang, 'shortfallBadge')}`}
                       />
                       {/* Green Sufficient Zone */}
                       <div
                         className="h-full bg-secondary/25"
                         style={{ width: '50%' }}
-                        title={`₹${newBusinessAdequacy.minMargin.toLocaleString('en-IN')}+: Sufficient`}
+                        title={`₹${newBusinessAdequacy.minMargin.toLocaleString('en-IN')}+: ${t(lang, 'sufficientBadge')}`}
                       />
 
                       {/* Active Fill Indicator */}
@@ -838,8 +869,8 @@ export default function Advisory() {
 
                     {/* Zone Labels */}
                     <div className="flex justify-between text-[11px] font-bold px-1">
-                      <span className="text-destructive">🔴 0 - ₹{newBusinessAdequacy.minMargin.toLocaleString('en-IN')} (कम है / Shortfall)</span>
-                      <span className="text-secondary">🟢 ₹{newBusinessAdequacy.minMargin.toLocaleString('en-IN')}+ (पर्याप्त है / Sufficient)</span>
+                      <span className="text-destructive">🔴 0 - ₹{newBusinessAdequacy.minMargin.toLocaleString('en-IN')} ({t(lang, 'shortfallBadge')})</span>
+                      <span className="text-secondary">🟢 ₹{newBusinessAdequacy.minMargin.toLocaleString('en-IN')}+ ({t(lang, 'sufficientBadge')})</span>
                     </div>
                   </div>
                 </div>
@@ -863,8 +894,8 @@ export default function Advisory() {
                       <div className="flex items-center justify-between flex-wrap gap-2">
                         <span className="font-display font-bold text-base sm:text-lg text-primary">
                           {newBusinessAdequacy.isEnough
-                            ? (lang === 'hi' ? 'पूंजी पर्याप्त है' : 'Capital is Sufficient')
-                            : (lang === 'hi' ? `पूंजी में कमी: ₹${newBusinessAdequacy.shortfall.toLocaleString('en-IN')}` : `Capital Shortfall: ₹${newBusinessAdequacy.shortfall.toLocaleString('en-IN')}`)}
+                            ? t(lang, 'capitalEnough')
+                            : `${t(lang, 'capitalShortfall')}: ₹${newBusinessAdequacy.shortfall.toLocaleString('en-IN')}`}
                         </span>
                         <span
                           className={`text-xs uppercase tracking-wider font-bold px-3 py-1 rounded-full ${
@@ -873,7 +904,7 @@ export default function Advisory() {
                               : 'bg-destructive text-destructive-foreground'
                           }`}
                         >
-                          {newBusinessAdequacy.isEnough ? '100% Sufficient' : 'Need More Funds'}
+                          {newBusinessAdequacy.isEnough ? t(lang, 'sufficientBadge') : t(lang, 'shortfallBadge')}
                         </span>
                       </div>
                       <p className="text-sm text-foreground leading-relaxed">
@@ -884,15 +915,13 @@ export default function Advisory() {
                       <div className="grid sm:grid-cols-2 gap-3 pt-3 border-t border-border/60 mt-3 text-xs">
                         <div className="bg-background/90 p-3 rounded border border-border">
                           <span className="text-[10px] uppercase font-bold text-muted-foreground block">
-                            {lang === 'hi' ? 'न्यूनतम आवश्यक बैंक ऋण' : 'Minimum Loan Required'}
+                            {t(lang, 'minLoanRequired')}
                           </span>
                           <span className="font-display font-bold text-lg text-primary block mt-0.5">
                             ₹{newBusinessAdequacy.minLoanNeeded.toLocaleString('en-IN')}
                           </span>
                           <span className="text-[11px] text-muted-foreground block mt-0.5">
-                            {lang === 'hi'
-                              ? `न्यूनतम ₹${newBusinessAdequacy.minCost.toLocaleString('en-IN')} के व्यवसाय सेटअप के लिए`
-                              : `For ₹${newBusinessAdequacy.minCost.toLocaleString('en-IN')} minimum setup cost`}
+                            {t(lang, 'minLoanRequiredDesc')} (₹{newBusinessAdequacy.minCost.toLocaleString('en-IN')})
                           </span>
                         </div>
 
@@ -902,33 +931,29 @@ export default function Advisory() {
                             : 'bg-destructive/15 border-destructive/50 text-destructive-foreground'
                         }`}>
                           <span className="text-[10px] uppercase font-bold block opacity-90">
-                            {lang === 'hi' ? 'ऋण पात्रता स्थिति' : 'Loan Eligibility Status'}
+                            {t(lang, 'loanEligibilityStatus')}
                           </span>
                           <span className="font-display font-bold text-base flex items-center gap-1.5 mt-0.5">
                             {newBusinessAdequacy.isLoanEligible ? (
                               <>
                                 <CheckCircle2 size={16} className="text-secondary flex-shrink-0" />
                                 <span className="text-secondary font-bold">
-                                  {lang === 'hi' ? 'ऋण के लिए पात्र (Eligible)' : 'Eligible for Bank Loan'}
+                                  {t(lang, 'eligibleForLoan')}
                                 </span>
                               </>
                             ) : (
                               <>
                                 <AlertTriangle size={16} className="text-destructive flex-shrink-0" />
                                 <span className="text-destructive font-bold">
-                                  {lang === 'hi' ? 'अपात्र (मार्जिन कम है)' : 'Ineligible (Margin Shortfall)'}
+                                  {t(lang, 'ineligibleLoan')}
                                 </span>
                               </>
                             )}
                           </span>
                           <span className="text-[11px] block mt-0.5 opacity-90">
                             {newBusinessAdequacy.isLoanEligible
-                              ? (lang === 'hi'
-                                  ? `10% मार्जिन पूरा। आप ₹${newBusinessAdequacy.minLoanNeeded.toLocaleString('en-IN')} से ₹${(form.margin_capital * 9).toLocaleString('en-IN')} तक के ऋण के पात्र हैं।`
-                                  : `Promoter margin met. Qualified for ₹${newBusinessAdequacy.minLoanNeeded.toLocaleString('en-IN')} minimum loan.`)
-                              : (lang === 'hi'
-                                  ? `ऋण पात्रता हेतु ₹${newBusinessAdequacy.shortfall.toLocaleString('en-IN')} और मार्जिन पूंजी जोड़ें।`
-                                  : `Need ₹${newBusinessAdequacy.shortfall.toLocaleString('en-IN')} more margin capital to qualify for bank loan.`)}
+                              ? t(lang, 'safeMarginBadge')
+                              : `${t(lang, 'shortfallMarginBadge')} (₹${newBusinessAdequacy.shortfall.toLocaleString('en-IN')})`}
                           </span>
                         </div>
                       </div>
@@ -940,25 +965,25 @@ export default function Advisory() {
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
                   <div className="border border-border p-4 bg-muted/40 rounded-lg">
                     <div className="text-xs tracking-[0.12em] uppercase text-muted-foreground mb-1">
-                      {lang === 'hi' ? 'न्यूनतम सेटअप लागत' : 'Min Setup Cost'}
+                      {t(lang, 'minSetupCost')}
                     </div>
                     <div className="font-display font-bold text-xl sm:text-2xl tabular-nums">
                       ₹{newBusinessAdequacy.minCost.toLocaleString('en-IN')}
                     </div>
                     <div className="text-[11px] text-muted-foreground mt-0.5">
-                      {lang === 'hi' ? 'न्यूनतम जरूरी पैमाना' : 'Minimum viable scale'}
+                      {t(lang, 'minSetupCostDesc')}
                     </div>
                   </div>
 
                   <div className="border border-border p-4 bg-muted/40 rounded-lg">
                     <div className="text-xs tracking-[0.12em] uppercase text-muted-foreground mb-1">
-                      {lang === 'hi' ? 'न्यूनतम आवश्यक लोन' : 'Min Loan Required'}
+                      {t(lang, 'minLoanRequired')}
                     </div>
                     <div className="font-display font-bold text-xl sm:text-2xl tabular-nums text-accent">
                       ₹{newBusinessAdequacy.minLoanNeeded.toLocaleString('en-IN')}
                     </div>
                     <div className="text-[11px] text-muted-foreground mt-0.5">
-                      {lang === 'hi' ? 'लागत - आपकी पूंजी' : 'Min cost minus margin'}
+                      {t(lang, 'minLoanRequiredDesc')}
                     </div>
                   </div>
 
@@ -968,7 +993,7 @@ export default function Advisory() {
                       : 'border-destructive/40 bg-destructive/5'
                   }`}>
                     <div className="text-xs tracking-[0.12em] uppercase text-muted-foreground mb-1">
-                      {lang === 'hi' ? 'ऋण पात्रता स्थिति' : 'Loan Eligibility'}
+                      {t(lang, 'loanEligibilityStatus')}
                     </div>
                     <div className={`font-display font-bold text-xl sm:text-2xl tabular-nums flex items-center gap-1.5 ${
                       newBusinessAdequacy.isLoanEligible ? 'text-secondary' : 'text-destructive'
@@ -976,19 +1001,19 @@ export default function Advisory() {
                       {newBusinessAdequacy.isLoanEligible ? (
                         <>
                           <CheckCircle2 size={18} />
-                          <span>{lang === 'hi' ? 'पात्र' : 'Eligible'}</span>
+                          <span>{t(lang, 'eligibleForLoan')}</span>
                         </>
                       ) : (
                         <>
                           <AlertTriangle size={18} />
-                          <span className="text-base sm:text-lg">{lang === 'hi' ? 'अपात्र' : 'Ineligible'}</span>
+                          <span className="text-base sm:text-lg">{t(lang, 'ineligibleLoan')}</span>
                         </>
                       )}
                     </div>
                     <div className="text-[11px] text-muted-foreground mt-0.5">
                       {newBusinessAdequacy.isLoanEligible
-                        ? `Max loan: ₹${(form.margin_capital * 9).toLocaleString('en-IN')}`
-                        : `Short by ₹${newBusinessAdequacy.shortfall.toLocaleString('en-IN')}`}
+                        ? t(lang, 'safeMarginBadge')
+                        : `₹${newBusinessAdequacy.shortfall.toLocaleString('en-IN')} ${t(lang, 'shortfallBadge')}`}
                     </div>
                   </div>
 
@@ -1000,7 +1025,7 @@ export default function Advisory() {
                       ₹{newBusinessAdequacy.subsidyEst.toLocaleString('en-IN')}
                     </div>
                     <div className="text-[11px] text-muted-foreground mt-0.5">
-                      {newBusinessAdequacy.subsidyPct}% PMEGP Govt Subsidy
+                      {Math.round(newBusinessAdequacy.subsidyPct * 100)}% {t(lang, 'subsidyRateTag')}
                     </div>
                   </div>
                 </div>
@@ -1013,12 +1038,10 @@ export default function Advisory() {
                         {t(lang, 'loanMode')}
                       </div>
                       <h3 className="font-display font-bold text-base text-primary">
-                        {lang === 'hi' ? 'ऋण आवश्यकता निर्धारण — केवल काम का लोन लें' : 'Smart Loan Sizing — Borrow only what you need'}
+                        {t(lang, 'leanLoanBadge')}
                       </h3>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {lang === 'hi'
-                          ? 'अनावश्यक बड़ा लोन लेने से बचें। अपनी पूंजी के अनुसार न्यूनतम जरूरी कर्ज चुनें ताकि ब्याज बचे।'
-                          : 'Avoid taking unnecessary excess debt. Borrow only the required capital to minimize interest burdens.'}
+                        {t(lang, 'leanLoanDesc')}
                       </p>
                     </div>
                   </div>
@@ -1036,7 +1059,7 @@ export default function Advisory() {
                     >
                       <div className="flex items-center justify-between mb-1">
                         <span className="font-semibold text-sm text-primary flex items-center gap-1.5">
-                          🛡️ {t(lang, 'leanLoan')}
+                          🛡️ {t(lang, 'leanLoanBadge')}
                         </span>
                         <div className="flex items-center gap-1">
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
@@ -1045,11 +1068,8 @@ export default function Advisory() {
                               : 'text-destructive bg-destructive/20'
                           }`}>
                             {newBusinessAdequacy.isLoanEligible
-                              ? (lang === 'hi' ? 'ऋण पात्र' : 'Eligible')
-                              : (lang === 'hi' ? 'अपात्र' : 'Shortfall')}
-                          </span>
-                          <span className="text-[10px] font-bold text-secondary bg-secondary/20 px-2 py-0.5 rounded">
-                            {lang === 'hi' ? 'न्यूनतम जरूरी' : 'Min Loan'}
+                              ? t(lang, 'eligibleForLoan')
+                              : t(lang, 'ineligibleLoan')}
                           </span>
                         </div>
                       </div>
@@ -1057,7 +1077,7 @@ export default function Advisory() {
                         {t(lang, 'leanLoanDesc')}
                       </p>
                       <div className="mt-2 text-xs font-bold text-primary">
-                        Minimum Loan: <span className="text-secondary">₹{newBusinessAdequacy.minLoanNeeded.toLocaleString('en-IN')}</span>
+                        {t(lang, 'minLoanRequired')}: <span className="text-secondary">₹{newBusinessAdequacy.minLoanNeeded.toLocaleString('en-IN')}</span>
                       </div>
                     </button>
 
@@ -1072,17 +1092,14 @@ export default function Advisory() {
                     >
                       <div className="flex items-center justify-between mb-1">
                         <span className="font-semibold text-sm text-primary flex items-center gap-1.5">
-                          📈 {t(lang, 'growthLoan')}
-                        </span>
-                        <span className="text-[10px] font-bold text-accent bg-accent/20 px-2 py-0.5 rounded">
-                          {lang === 'hi' ? 'पूर्ण पैमाना' : 'Full Scale'}
+                          📈 {t(lang, 'growthLoanBadge')}
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground">
                         {t(lang, 'growthLoanDesc')}
                       </p>
                       <div className="mt-2 text-xs font-bold text-primary">
-                        Loan to borrow: <span className="text-accent">₹{newBusinessAdequacy.growthLoanNeeded.toLocaleString('en-IN')}</span>
+                        {t(lang, 'estLoan')}: <span className="text-accent">₹{newBusinessAdequacy.growthLoanNeeded.toLocaleString('en-IN')}</span>
                       </div>
                     </button>
                   </div>
@@ -1092,9 +1109,7 @@ export default function Advisory() {
                     <div className="border border-secondary/50 bg-secondary/15 p-3 rounded text-xs flex items-center gap-2 text-secondary-foreground font-medium">
                       <Sparkles size={16} className="text-secondary flex-shrink-0" />
                       <span>
-                        {lang === 'hi'
-                          ? `स्मार्ट बचत: केवल जरूरी लोन लेने से आपको बैंक ब्याज में लगभग ₹${newBusinessAdequacy.interestSaved.toLocaleString('en-IN')} की सीधी बचत होगी!`
-                          : `Interest Saving: By choosing a lean loan, you save approx ₹${newBusinessAdequacy.interestSaved.toLocaleString('en-IN')} in total interest over loan tenure!`}
+                        {t(lang, 'interestSavedMsg')}: ₹{newBusinessAdequacy.interestSaved.toLocaleString('en-IN')}
                       </span>
                     </div>
                   )}
@@ -1109,41 +1124,41 @@ export default function Advisory() {
                         ₹{newBusinessAdequacy.activeProjectCost.toLocaleString('en-IN')}
                       </div>
                       <div className="text-[10px] text-muted-foreground mt-0.5">
-                        {form.loan_mode === 'lean' ? 'Lean Viable Setup' : 'Full 10x Scale'}
+                        {form.loan_mode === 'lean' ? t(lang, 'minSetupCostDesc') : t(lang, 'tenTimesMargin')}
                       </div>
                     </div>
 
                     <div className="border border-border p-3.5 bg-background">
                       <div className="text-[10px] tracking-[0.15em] uppercase text-muted-foreground mb-1">
-                        Your Margin Capital
+                        {t(lang, 'yourInvestedCapital')}
                       </div>
                       <div className="font-display font-bold text-xl tabular-nums">
                         ₹{form.margin_capital.toLocaleString('en-IN')}
                       </div>
-                      <div className="text-[10px] text-muted-foreground mt-0.5">Promoter Equity</div>
+                      <div className="text-[10px] text-muted-foreground mt-0.5">{t(lang, 'tenPercentMargin')}</div>
                     </div>
 
                     <div className="border border-border p-3.5 bg-background">
                       <div className="text-[10px] tracking-[0.15em] uppercase text-muted-foreground mb-1">
-                        Bank Loan to Borrow
+                        {t(lang, 'estLoan')}
                       </div>
                       <div className="font-display font-bold text-xl tabular-nums text-accent">
                         ₹{newBusinessAdequacy.activeLoan.toLocaleString('en-IN')}
                       </div>
                       <div className="text-[10px] text-muted-foreground mt-0.5">
-                        {form.loan_mode === 'lean' ? 'Right-Sized Debt' : 'Max 90% Loan'}
+                        {form.loan_mode === 'lean' ? t(lang, 'minLoanRequiredDesc') : 'Max 90% Loan'}
                       </div>
                     </div>
 
                     <div className="border border-secondary/40 p-3.5 bg-secondary/5">
                       <div className="text-[10px] tracking-[0.15em] uppercase text-secondary font-bold mb-1">
-                        Eligible Govt Subsidy
+                        {t(lang, 'eligibleSubsidy')}
                       </div>
                       <div className="font-display font-bold text-xl tabular-nums text-secondary">
                         ₹{newBusinessAdequacy.subsidyEst.toLocaleString('en-IN')}
                       </div>
                       <div className="text-[10px] text-muted-foreground mt-0.5">
-                        {newBusinessAdequacy.subsidyPct}% PMEGP Margin Grant
+                        {Math.round(newBusinessAdequacy.subsidyPct * 100)}% {t(lang, 'subsidyRateTag')}
                       </div>
                     </div>
                   </div>
@@ -1154,16 +1169,16 @@ export default function Advisory() {
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <div>
                       <div className="text-xs tracking-[0.2em] uppercase font-bold text-primary">
-                        Loan EMI & Repayment Planner
+                        {t(lang, 'repayment')}
                       </div>
                       <h3 className="font-display font-bold text-base text-primary">
-                        {lang === 'hi' ? 'मासिक किस्त एवं अदायगी विश्लेषण' : 'Monthly EMI & Cashflow Affordability'}
+                        {t(lang, 'monthlyEmiBadge')} & {t(lang, 'profitAfterEmi')}
                       </h3>
                     </div>
 
                     {/* Tenure Pills */}
                     <div className="flex items-center gap-1 bg-muted/40 border border-border p-1 rounded">
-                      <span className="text-[11px] text-muted-foreground px-2 font-medium">Tenure:</span>
+                      <span className="text-[11px] text-muted-foreground px-2 font-medium">{t(lang, 'tenure')}:</span>
                       {[3, 5, 7].map((yr) => (
                         <button
                           key={yr}
@@ -1175,7 +1190,7 @@ export default function Advisory() {
                               : 'text-muted-foreground hover:text-foreground'
                           }`}
                         >
-                          {yr} Yrs
+                          {yr} {t(lang, 'yearsUnit')}
                         </button>
                       ))}
                     </div>
@@ -1189,14 +1204,14 @@ export default function Advisory() {
                       </div>
                       <div className="font-display font-black text-3xl sm:text-4xl text-primary tabular-nums">
                         ₹{newBusinessAdequacy.emiMonthly.toLocaleString('en-IN')}{' '}
-                        <span className="text-sm font-normal text-muted-foreground">/ month</span>
+                        <span className="text-sm font-normal text-muted-foreground">/ {t(lang, 'monthsUnit')}</span>
                       </div>
                       <div className="text-xs text-muted-foreground flex items-center gap-3 pt-1">
-                        <span>Quarterly: <b>₹{newBusinessAdequacy.quarterlyEmi.toLocaleString('en-IN')}</b></span>
-                        <span>Interest: <b>{newBusinessAdequacy.interestRate}% p.a.</b></span>
+                        <span>{t(lang, 'quarterly')}: <b>₹{newBusinessAdequacy.quarterlyEmi.toLocaleString('en-IN')}</b></span>
+                        <span>{t(lang, 'interestRate')}: <b>{newBusinessAdequacy.interestRate}% p.a.</b></span>
                       </div>
                       <div className="text-[11px] text-accent font-medium pt-1">
-                        ⏳ {newBusinessAdequacy.moratoriumMonths}-Month Moratorium (No principal EMI during business setup)
+                        ⏳ {newBusinessAdequacy.moratoriumMonths} {t(lang, 'monthsUnit')} {t(lang, 'moratorium')}
                       </div>
                     </div>
 
@@ -1207,13 +1222,13 @@ export default function Advisory() {
                         <span className="font-semibold text-primary">₹{newBusinessAdequacy.monthlyGrossProfit.toLocaleString('en-IN')}</span>
                       </div>
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">Monthly Loan EMI:</span>
+                        <span className="text-muted-foreground">{t(lang, 'monthlyEmiBadge')}:</span>
                         <span className="font-semibold text-destructive">-₹{newBusinessAdequacy.emiMonthly.toLocaleString('en-IN')}</span>
                       </div>
                       <div className="flex items-center justify-between text-xs pt-1 border-t border-border font-bold">
                         <span className="text-primary">{t(lang, 'profitAfterEmi')}:</span>
                         <span className="text-secondary text-sm">
-                          ₹{newBusinessAdequacy.netProfitAfterEmi.toLocaleString('en-IN')} / mo
+                          ₹{newBusinessAdequacy.netProfitAfterEmi.toLocaleString('en-IN')} / {t(lang, 'monthsUnit')}
                         </span>
                       </div>
 
@@ -1244,15 +1259,13 @@ export default function Advisory() {
               <>
                 <div>
                   <div className="flex items-center gap-2 text-xs tracking-[0.2em] uppercase text-accent font-bold mb-1">
-                    <TrendingUp size={14} /> Extension Capital Blueprint
+                    <TrendingUp size={14} /> {t(lang, 'requiredExpansionCapital')}
                   </div>
                   <h2 className="font-display text-2xl font-extrabold text-primary tracking-tight">
-                    {lang === 'hi' ? 'व्यवसाय विस्तार हेतु आवश्यक पूंजी' : 'Capital Required to Extend Business'}
+                    {t(lang, 'requiredExpansionCapital')}
                   </h2>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {lang === 'hi'
-                      ? 'अपनी चुनी हुई विस्तार योजना के लिए कुल परियोजना लागत, आवश्यक मार्जिन और सरकारी द्वितीय ऋण सब्सिडी देखें।'
-                      : 'Detailed financial assessment of how much capital is required to scale your enterprise.'}
+                    {t(lang, 'businessExtensionDesc')}
                   </p>
                 </div>
 
@@ -1275,12 +1288,12 @@ export default function Advisory() {
                     <div className="font-display font-extrabold text-2xl text-accent tabular-nums">
                       ₹{expansionEconomics.requiredMargin.toLocaleString('en-IN')}
                     </div>
-                    <div className="text-[11px] text-muted-foreground mt-1">10% Promoter Contribution</div>
+                    <div className="text-[11px] text-muted-foreground mt-1">{t(lang, 'tenPercentMargin')}</div>
                   </div>
 
                   <div className="border border-border p-4 bg-background">
                     <div className="text-[10px] tracking-[0.15em] uppercase text-muted-foreground mb-1">
-                      Bank Expansion Loan
+                      {t(lang, 'estLoan')}
                     </div>
                     <div className="font-display font-extrabold text-2xl text-primary tabular-nums">
                       ₹{expansionEconomics.loanNeeded.toLocaleString('en-IN')}
@@ -1296,7 +1309,7 @@ export default function Advisory() {
                       ₹{expansionEconomics.subsidyEst.toLocaleString('en-IN')}
                     </div>
                     <div className="text-[11px] text-muted-foreground mt-1">
-                      {expansionEconomics.subsidyPct}% Upgradation Subsidy
+                      {Math.round(expansionEconomics.subsidyPct * 100)}% {t(lang, 'subsidyRateTag')}
                     </div>
                   </div>
                 </div>
@@ -1309,7 +1322,7 @@ export default function Advisory() {
                         {t(lang, 'availableExpansionCapital')}
                       </div>
                       <div className="text-xs text-muted-foreground mt-0.5">
-                        {lang === 'hi' ? 'विस्तार हेतु अपनी उपलब्ध पूंजी दर्ज करें या स्लाइड करें:' : 'Enter your available expansion capital or drag the slider:'}
+                        {t(lang, 'enterCapitalOrSlider')}
                       </div>
                     </div>
 
@@ -1352,13 +1365,13 @@ export default function Advisory() {
                   <div className="pt-3 border-t border-border/60 space-y-1.5">
                     <div className="flex justify-between text-xs">
                       <span className="text-muted-foreground font-semibold">
-                        {lang === 'hi' ? 'आवश्यक मार्जिन कवरेज' : 'Expansion Margin Coverage'}
+                        {t(lang, 'capitalBenchmark')}
                       </span>
                       <span className="font-bold tabular-nums">
                         {expansionEconomics.isEnough ? (
-                          <span className="text-secondary font-bold">🟢 100% Covered (Surplus: ₹{expansionEconomics.surplus.toLocaleString('en-IN')})</span>
+                          <span className="text-secondary font-bold">🟢 {t(lang, 'sufficientBadge')}</span>
                         ) : (
-                          <span className="text-accent font-bold">⚠️ Shortfall: ₹{expansionEconomics.shortfall.toLocaleString('en-IN')}</span>
+                          <span className="text-accent font-bold">⚠️ {t(lang, 'shortfallBadge')}: ₹{expansionEconomics.shortfall.toLocaleString('en-IN')}</span>
                         )}
                       </span>
                     </div>
@@ -1394,8 +1407,8 @@ export default function Advisory() {
                       <div className="flex items-center gap-2">
                         <span className="font-display font-bold text-base text-primary">
                           {expansionEconomics.isEnough
-                            ? (lang === 'hi' ? 'विस्तार हेतु पूंजी पूरी तरह पर्याप्त है!' : 'Expansion Capital is Sufficient!')
-                            : (lang === 'hi' ? `अतिरिक्त ₹${expansionEconomics.shortfall.toLocaleString('en-IN')} पूंजी आवश्यक` : `Additional ₹${expansionEconomics.shortfall.toLocaleString('en-IN')} Capital Required`)}
+                            ? t(lang, 'capitalEnough')
+                            : `${t(lang, 'capitalShortfall')}: ₹${expansionEconomics.shortfall.toLocaleString('en-IN')}`}
                         </span>
                         <span
                           className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${
@@ -1404,7 +1417,7 @@ export default function Advisory() {
                               : 'bg-accent text-accent-foreground'
                           }`}
                         >
-                          {expansionEconomics.isEnough ? 'Ready to Expand' : 'Capital Shortfall'}
+                          {expansionEconomics.isEnough ? t(lang, 'sufficientBadge') : t(lang, 'shortfallBadge')}
                         </span>
                       </div>
                       <p className="text-xs text-foreground mt-1 leading-relaxed">
@@ -1453,7 +1466,7 @@ export default function Advisory() {
                 {form.advisory_type === 'expansion' ? '🚀 Business Extension Mode' : '🌱 New Enterprise Mode'}
               </div>
               <h2 className="font-display text-2xl lg:text-3xl font-extrabold text-primary tracking-tight">
-                {lang === 'hi' ? 'आपकी AI परामर्श रिपोर्ट तैयार करने के लिए तैयार' : 'Ready to generate your comprehensive advisory'}
+                {t(lang, 'readyToGenerate')}
               </h2>
               <p className="text-sm text-muted-foreground mt-2 max-w-lg mx-auto">
                 Analysing <b>{form.village}</b>, {form.district} for <b>{form.business_category}</b> with ₹
