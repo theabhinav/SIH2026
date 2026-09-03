@@ -1,42 +1,36 @@
 # Grameen Udyog — AI Business Advisory (PRD)
 
 ## Original Problem Statement
-Convert an existing project into a React (Vite) frontend + Node/Express backend with no errors.
-The project is "Grameen Udyog AI Advisory" — a hyper-local AI business advisor + government-loan
-scheme calculator for rural/semi-urban entrepreneurs in India.
+Convert an existing project into React (Vite) frontend + Node/Express backend with no errors,
+plus feature requests. App: hyper-local AI business advisor + govt-loan scheme calculator for rural India.
 
-## Stack (after conversion)
-- Frontend: React 19 + Vite 5 (migrated from CRA/craco), Tailwind, shadcn/ui, recharts, lucide-react.
-  Runs via supervisor `frontend` (`yarn start` -> vite) on port 3000.
-- Backend: Node.js/Express + MongoDB (mongodb driver). Runs via supervisor `node-backend`
-  (`/app/backend/run.sh`) on port 8001. The default python `backend` program is intentionally stopped.
-- Auth: JWT (Bearer header) + bcrypt, users persisted in Mongo. Errors returned in `detail`.
-- AI: Google Gemini (user's own GEMINI_API_KEY, direct Google API). Empty by default ->
-  deterministic narrative fallback. All financial numbers are computed server-side regardless.
+## Stack
+- Frontend: React 19 + Vite 5 (migrated from CRA/craco). Supervisor `frontend` (`yarn start` -> vite) :3000.
+- Backend: Node.js/Express + MongoDB. Supervisor `node-backend` (`/app/backend/run.sh`) :8001.
+  Python `backend` program intentionally stopped.
+- Auth: JWT (Bearer) + bcrypt, users in Mongo. Errors in `detail`.
+- AI: Gemini (optional GEMINI_API_KEY) -> deterministic fallback. All numbers computed server-side.
+- Deploy: root `server.js` serves API + built React; `render.yaml` blueprint for Render single web service.
 
-## Implemented (2026-06)
-- CRA -> Vite migration; production build passes with 0 errors.
-- MongoDB persistence for users, reports, and community shops.
-- Calculator fixed + made precise: month-by-month amortisation ledger, interest-only moratorium,
-  consistent quarterly/yearly rollups, monthly vs quarterly repayment option, input validation (min ₹5,000).
-- Revenue & cost model: monthly revenue + 5-part cost breakdown (raw material, worker, inventory,
-  operational, other), gross/net profit, net margin, annual ROI, break-even.
-- Viability score reworked: factor-based (profitability, demand, purchasing power, competition,
-  capital adequacy) — varies per input, no longer always 80+.
-- Nuanced AI recommendation: verdict (Recommended / Proceed with Caution / Marginal / Not Recommended),
-  suggested capital, rationale, long-term outlook (suggests a suitable amount for long-term benefit).
-- Government schemes explorer (PMEGP, MUDRA, Stand-Up India, NSFDC, CGTMSE) with eligibility +
-  required documents + subsidy; plus a Government Support block (documents + subsidies + notes).
-- Nearby vendors (raw material / machinery / packaging) with price, contact, distance, rating.
-- Supply-chain map (Source -> Production -> Storage -> Distribution -> Customer).
-- Community feature: signed-in users add nearby shops to earn points (+10 details, +5 photo,
-  +3 contact) and +2 per upvote received; upvoting, and a leaderboard. Points badge in NavBar.
+## Implemented
+- 2026-06 (iter 1): CRA->Vite; MongoDB; precise calculator + monthly/quarterly; revenue/cost model;
+  varied viability; nuanced recommendation; govt schemes + docs + subsidy; vendors; supply-chain map;
+  Community (add shops, points, upvotes, leaderboard, points badge). Tests 100%.
+- 2026-06 (iter 2):
+  - BUG FIX: report is now category-specific — CATEGORY_SUPPLY map (all 20 categories) drives
+    raw materials / machinery / supply-chain sourcing (no more generic "Primary Raw Material").
+  - RULE CHANGE: contributor points unlock ONLY after 2 upvotes (add awards 0 + points_pending;
+    credited at 2 upvotes; debited if drops below; self-upvote blocked).
+  - MongoDB Atlas wired for deploy; frontend API falls back to relative `/api` (same-origin on Render).
+  - Added render.yaml + README; removed CRA/QA leftovers. Tests 100% (14/14 backend + E2E).
 
-## Testing
-- iteration_1: backend 100% (17/17), frontend 100%. No critical/blocking issues.
+## Env notes
+- backend/.env and frontend/.env are gitignored -> on Render set env vars in dashboard (MONGO_URL Atlas,
+  DB_NAME, JWT_SECRET). Preview pod uses LOCAL MongoDB because Atlas TLS handshake resets from this pod.
+- Atlas: whitelist 0.0.0.0/0 in Network Access.
 
 ## Backlog / Next
-- P1: Enable real Gemini AI (user to paste GEMINI_API_KEY into backend/.env).
-- P2: Code-split the frontend bundle (recharts/jspdf) to reduce main chunk size.
-- P2: Floor community points at 0 on un-upvote; split server.js into routes/services.
-- P2: Multilingual report text for ta/te/bn/mr (currently English fallback).
+- P1: Real Gemini AI (add GEMINI_API_KEY).
+- P2: Personal profile (my shops + points), report share (WhatsApp/link).
+- P2: Split server.js into modules; code-split frontend bundle.
+- P2: Multilingual report text (ta/te/bn/mr).

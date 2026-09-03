@@ -426,7 +426,7 @@ export default function ReportView({ report, onReset }) {
           <Section icon={Landmark} title={t(lang, 'exploreSchemes')} subtitle="Compare & apply" testId="section-schemes">
             <div className="grid md:grid-cols-2 gap-4">
               {f.government_schemes.map((s) => (
-                <div key={s.code} className={`border p-5 ${s.primary ? 'border-accent bg-accent/5' : 'border-border bg-background'}`} data-testid={`scheme-${s.code}`}>
+                <div key={s.code} className={`border p-5 transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 ${s.primary ? 'border-accent bg-accent/5' : 'border-border bg-background'}`} data-testid={`scheme-${s.code}`}>
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <h4 className="font-display font-bold text-primary leading-snug">{s.name}</h4>
                     {s.primary && <span className="text-[10px] tracking-[0.15em] uppercase font-bold text-accent border border-accent/50 px-2 py-0.5 flex-shrink-0">Best Fit</span>}

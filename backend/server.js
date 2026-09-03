@@ -9,6 +9,8 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 8001;
+
+process.on('unhandledRejection', (err) => console.error('[unhandledRejection]', err && err.message ? err.message : err));
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secret_grameen_udyog_jwt_key_2026';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
@@ -17,7 +19,7 @@ app.use(cors({ origin: '*' }));
 app.use(express.json({ limit: '8mb' }));
 
 // ---------- Points config ----------
-const POINTS = { SHOP_DETAILS: 10, SHOP_PHOTO: 5, SHOP_CONTACT: 3, UPVOTE_RECEIVED: 2 };
+const POINTS = { SHOP_DETAILS: 10, SHOP_PHOTO: 5, SHOP_CONTACT: 3, UPVOTE_THRESHOLD: 2 };
 
 // ---------- MongoDB ----------
 const mongoClient = new MongoClient(process.env.MONGO_URL || 'mongodb://localhost:27017');
@@ -441,24 +443,32 @@ function governmentSchemes(fin, input) {
 }
 
 // ---------- Vendors (deterministic supply chain) ----------
-const VENDOR_TEMPLATES = {
-  raw: {
-    'Dairy & Milk Products': [{ item: 'Fresh Milk (bulk)', unit: '₹/litre' }, { item: 'Cattle Feed', unit: '₹/50kg' }, { item: 'Rennet & Cultures', unit: '₹/kit' }],
-    'Retail Kirana Store': [{ item: 'FMCG Wholesale Stock', unit: '₹/carton' }, { item: 'Grains & Pulses', unit: '₹/quintal' }, { item: 'Edible Oil', unit: '₹/15L tin' }],
-    'Bakery & Confectionery': [{ item: 'Refined Flour (Maida)', unit: '₹/50kg' }, { item: 'Sugar', unit: '₹/50kg' }, { item: 'Butter & Ghee', unit: '₹/kg' }],
-    'Tailoring & Boutique': [{ item: 'Fabric Rolls', unit: '₹/metre' }, { item: 'Thread & Trims', unit: '₹/box' }, { item: 'Buttons & Zips', unit: '₹/gross' }],
-    default: [{ item: 'Primary Raw Material', unit: '₹/kg' }, { item: 'Secondary Inputs', unit: '₹/unit' }, { item: 'Consumables', unit: '₹/pack' }],
-  },
-  machinery: {
-    'Dairy & Milk Products': [{ item: 'Milk Chilling Unit', unit: '₹/unit' }, { item: 'Cream Separator', unit: '₹/unit' }],
-    'Bakery & Confectionery': [{ item: 'Rotary Oven', unit: '₹/unit' }, { item: 'Planetary Mixer', unit: '₹/unit' }],
-    'Flour Mill': [{ item: 'Atta Chakki (Pulveriser)', unit: '₹/unit' }, { item: 'Sieving Machine', unit: '₹/unit' }],
-    default: [{ item: 'Core Equipment', unit: '₹/unit' }, { item: 'Support Tools', unit: '₹/set' }],
-  },
-  packaging: {
-    default: [{ item: 'Printed Pouches / Cartons', unit: '₹/1000' }, { item: 'Labels & Stickers', unit: '₹/roll' }],
-  },
+const CATEGORY_SUPPLY = {
+  'Dairy & Milk Products': { raw: [{ item: 'Fresh Milk (bulk)', unit: '₹/litre' }, { item: 'Cattle Feed & Fodder', unit: '₹/50kg' }, { item: 'Rennet & Cultures', unit: '₹/kit' }], machinery: [{ item: 'Milk Chilling Unit', unit: '₹/unit' }, { item: 'Cream Separator', unit: '₹/unit' }] },
+  'Poultry Farming': { raw: [{ item: 'Day-old Chicks', unit: '₹/chick' }, { item: 'Poultry Feed', unit: '₹/50kg' }, { item: 'Vaccines & Medicines', unit: '₹/dose' }], machinery: [{ item: 'Automatic Feeder & Drinker', unit: '₹/set' }, { item: 'Brooder / Incubator', unit: '₹/unit' }] },
+  'Goat & Sheep Farming': { raw: [{ item: 'Goat Kids / Breeding Stock', unit: '₹/head' }, { item: 'Green Fodder', unit: '₹/quintal' }, { item: 'Mineral Mixture & Feed', unit: '₹/50kg' }], machinery: [{ item: 'Chaff Cutter', unit: '₹/unit' }, { item: 'Shed & Fencing Material', unit: '₹/set' }] },
+  'Retail Kirana Store': { raw: [{ item: 'FMCG Wholesale Stock', unit: '₹/carton' }, { item: 'Grains & Pulses', unit: '₹/quintal' }, { item: 'Edible Oil', unit: '₹/15L tin' }], machinery: [{ item: 'Display Racks & Shelving', unit: '₹/set' }, { item: 'Digital Weighing Scale', unit: '₹/unit' }] },
+  'Textiles & Handloom': { raw: [{ item: 'Cotton / Silk Yarn', unit: '₹/kg' }, { item: 'Dyes & Chemicals', unit: '₹/kg' }, { item: 'Warp & Weft Thread', unit: '₹/cone' }], machinery: [{ item: 'Handloom / Powerloom', unit: '₹/unit' }, { item: 'Warping Drum', unit: '₹/unit' }] },
+  'Tailoring & Boutique': { raw: [{ item: 'Fabric Rolls', unit: '₹/metre' }, { item: 'Thread & Trims', unit: '₹/box' }, { item: 'Buttons & Zips', unit: '₹/gross' }], machinery: [{ item: 'Sewing Machine', unit: '₹/unit' }, { item: 'Overlock / Interlock Machine', unit: '₹/unit' }] },
+  'Beauty Parlour': { raw: [{ item: 'Cosmetics & Creams', unit: '₹/kit' }, { item: 'Hair Colour & Chemicals', unit: '₹/pack' }, { item: 'Disposables (wax, tissues)', unit: '₹/pack' }], machinery: [{ item: 'Facial & Steamer Unit', unit: '₹/unit' }, { item: 'Hair Dryer & Styling Kit', unit: '₹/set' }] },
+  'Mobile Repair & Recharge Shop': { raw: [{ item: 'Spare Parts (screens, batteries)', unit: '₹/unit' }, { item: 'Accessories (covers, chargers)', unit: '₹/piece' }, { item: 'Recharge / SIM Stock', unit: '₹/lot' }], machinery: [{ item: 'Soldering & Rework Station', unit: '₹/unit' }, { item: 'Battery / Display Tester', unit: '₹/unit' }] },
+  'Auto/E-Rickshaw Service': { raw: [{ item: 'Battery Charging / Fuel', unit: '₹/month' }, { item: 'Spare Parts & Tyres', unit: '₹/set' }, { item: 'Lubricants', unit: '₹/litre' }], machinery: [{ item: 'E-Rickshaw / Auto Vehicle', unit: '₹/unit' }, { item: 'Battery Charging Setup', unit: '₹/set' }] },
+  'Bakery & Confectionery': { raw: [{ item: 'Refined Flour (Maida)', unit: '₹/50kg' }, { item: 'Sugar', unit: '₹/50kg' }, { item: 'Butter & Ghee', unit: '₹/kg' }], machinery: [{ item: 'Rotary Oven', unit: '₹/unit' }, { item: 'Planetary Mixer', unit: '₹/unit' }] },
+  'Tea Stall / Snacks': { raw: [{ item: 'Milk & Tea Leaves', unit: '₹/kg' }, { item: 'Sugar & Spices', unit: '₹/kg' }, { item: 'Snack Ingredients (flour, oil)', unit: '₹/kg' }], machinery: [{ item: 'Gas Stove & Burner', unit: '₹/set' }, { item: 'Refrigerator & Display Counter', unit: '₹/unit' }] },
+  'Vegetable & Fruit Vending': { raw: [{ item: 'Fresh Vegetables', unit: '₹/quintal' }, { item: 'Seasonal Fruits', unit: '₹/crate' }, { item: 'Crates & Baskets', unit: '₹/dozen' }], machinery: [{ item: 'Handcart / Thela', unit: '₹/unit' }, { item: 'Weighing Scale', unit: '₹/unit' }] },
+  'Agri-Inputs (Seeds, Fertilizer)': { raw: [{ item: 'Certified Seeds', unit: '₹/kg' }, { item: 'Fertilizers (Urea/DAP)', unit: '₹/50kg' }, { item: 'Pesticides', unit: '₹/litre' }], machinery: [{ item: 'Storage Racks', unit: '₹/set' }, { item: 'Sprayer Stock', unit: '₹/unit' }] },
+  'Fisheries': { raw: [{ item: 'Fish Seed / Fingerlings', unit: '₹/1000' }, { item: 'Fish Feed', unit: '₹/50kg' }, { item: 'Lime & Supplements', unit: '₹/50kg' }], machinery: [{ item: 'Aerator / Water Pump', unit: '₹/unit' }, { item: 'Fishing Nets', unit: '₹/set' }] },
+  'Handicrafts': { raw: [{ item: 'Raw Wood / Bamboo / Clay', unit: '₹/kg' }, { item: 'Paints & Polish', unit: '₹/litre' }, { item: 'Beads & Embellishments', unit: '₹/pack' }], machinery: [{ item: 'Hand Tools Set', unit: '₹/set' }, { item: 'Polishing / Carving Machine', unit: '₹/unit' }] },
+  'Beekeeping': { raw: [{ item: 'Bee Colonies', unit: '₹/box' }, { item: 'Sugar (feed)', unit: '₹/50kg' }, { item: 'Comb Foundation Sheets', unit: '₹/pack' }], machinery: [{ item: 'Bee Boxes / Hives', unit: '₹/unit' }, { item: 'Honey Extractor', unit: '₹/unit' }] },
+  'Flour Mill': { raw: [{ item: 'Wheat / Grains', unit: '₹/quintal' }, { item: 'Gunny Bags', unit: '₹/dozen' }], machinery: [{ item: 'Atta Chakki (Pulveriser)', unit: '₹/unit' }, { item: 'Sieving Machine', unit: '₹/unit' }] },
+  'Papad / Pickle Making': { raw: [{ item: 'Pulses / Flour', unit: '₹/50kg' }, { item: 'Oil & Spices', unit: '₹/kg' }, { item: 'Raw Mango / Lemon', unit: '₹/quintal' }], machinery: [{ item: 'Papad Rolling Machine', unit: '₹/unit' }, { item: 'Grinder & Mixer', unit: '₹/unit' }] },
+  'Photocopy & CSC Centre': { raw: [{ item: 'A4 Paper', unit: '₹/ream' }, { item: 'Toner & Cartridges', unit: '₹/unit' }, { item: 'Stationery Stock', unit: '₹/lot' }], machinery: [{ item: 'Photocopier / Printer', unit: '₹/unit' }, { item: 'Computer & Scanner', unit: '₹/set' }] },
+  'Two-Wheeler Repair': { raw: [{ item: 'Spare Parts', unit: '₹/set' }, { item: 'Engine Oil & Lubricants', unit: '₹/litre' }, { item: 'Tyres & Tubes', unit: '₹/piece' }], machinery: [{ item: 'Air Compressor', unit: '₹/unit' }, { item: 'Tools & Hydraulic Lift', unit: '₹/set' }] },
 };
+const PACKAGING = [{ item: 'Printed Pouches / Cartons', unit: '₹/1000' }, { item: 'Labels & Stickers', unit: '₹/roll' }];
+function getSupply(cat) {
+  return CATEGORY_SUPPLY[cat] || { raw: [{ item: 'Primary Raw Material', unit: '₹/kg' }, { item: 'Secondary Inputs', unit: '₹/unit' }, { item: 'Consumables', unit: '₹/pack' }], machinery: [{ item: 'Core Equipment', unit: '₹/unit' }, { item: 'Support Tools', unit: '₹/set' }] };
+}
 const VENDOR_SURNAMES = ['Traders', 'Enterprises', 'Agencies', 'Suppliers', 'Distributors', 'Udyog', 'Bhandar', 'Stores'];
 const VENDOR_FIRST = ['Sri Balaji', 'Maa Durga', 'New Bharat', 'Gopal', 'Krishna', 'Shakti', 'Annapurna', 'Jai Kisan', 'Ganesh', 'Laxmi'];
 
@@ -466,11 +476,12 @@ function pick(arr, seed) { return arr[Math.floor(seed * arr.length) % arr.length
 
 function buildVendors(input, fin) {
   const base = (input.village || '') + (input.business_category || '') + (input.district || '');
+  const supply = getSupply(input.business_category);
   const out = [];
   const groups = [
-    { type: 'Raw Material', templates: VENDOR_TEMPLATES.raw[input.business_category] || VENDOR_TEMPLATES.raw.default, count: 3 },
-    { type: 'Machinery / Equipment', templates: VENDOR_TEMPLATES.machinery[input.business_category] || VENDOR_TEMPLATES.machinery.default, count: 2 },
-    { type: 'Packaging', templates: VENDOR_TEMPLATES.packaging.default, count: 1 },
+    { type: 'Raw Material', templates: supply.raw, count: 3 },
+    { type: 'Machinery / Equipment', templates: supply.machinery, count: 2 },
+    { type: 'Packaging', templates: PACKAGING, count: 1 },
   ];
   let idx = 0;
   groups.forEach((g) => {
@@ -501,12 +512,13 @@ function buildVendors(input, fin) {
 }
 
 function buildSupplyChain(input, vendors) {
-  const rawVendors = vendors.filter((v) => v.vendor_type === 'Raw Material').map((v) => v.name);
+  const supply = getSupply(input.business_category);
+  const rawItems = supply.raw.map((r) => r.item);
   const p = getProfile(input.business_category);
   return {
     stages: [
-      { key: 'source', title: 'Sourcing', detail: `Procure inputs from ${rawVendors.length} nearby suppliers`, nodes: rawVendors.length ? rawVendors : ['Local wholesale market'] },
-      { key: 'produce', title: 'Production', detail: `Process / prepare ${input.business_category}`, nodes: [`${input.village} unit`] },
+      { key: 'source', title: 'Sourcing', detail: `Procure ${input.business_category} inputs from nearby suppliers`, nodes: rawItems },
+      { key: 'produce', title: 'Production', detail: `Process / prepare ${input.business_category}`, nodes: [`${input.village} unit`, ...supply.machinery.slice(0, 1).map((m) => m.item)] },
       { key: 'store', title: 'Storage', detail: 'Hold stock & maintain quality buffer', nodes: ['On-site inventory'] },
       { key: 'distribute', title: 'Distribution', detail: 'Move goods to points of sale', nodes: ['Direct retail', 'Weekly haat', 'Nearby town B2B'] },
       { key: 'customer', title: 'Customers', detail: `Serve local demand (tier ${p.demand}/5)`, nodes: ['Households', 'Retail shops', 'Institutions'] },
@@ -683,7 +695,7 @@ app.post('/api/feasibility/generate', optionalToken, async (req, res) => {
     const supply_chain = buildSupplyChain(input, vendors);
     const schemes = governmentSchemes(fin, input);
 
-    const promptText = `You are a rural business feasibility analyst for India. Return STRICT JSON only (no markdown). For a ${input.business_category} enterprise in Village ${input.village}, Block ${input.block}, District ${input.district}, State ${input.state}, with margin capital ₹${input.margin_capital} and total project cost ₹${fin.project_cost}. The independently computed viability score is ${viability.score}/100 and the verdict is "${recommendation.verdict}". Do NOT invent financial numbers. Provide ONLY qualitative fields as JSON keys: executive_summary (string, reflect the "${recommendation.verdict}" verdict honestly), market_reach {consumer_base_estimate, primary_channels[], radius_km, target_segments[]}, opportunity_analysis {unserved_niches[], seasonal_windows[], recommended_positioning}, swot {strengths[], weaknesses[], opportunities[], threats[]}, threats_detailed[{threat, severity, mitigation}], competitor_mapping {estimated_density, competition_level, key_competitors_type[], differentiation_strategy}, product_market_value {suggested_price_range, regional_purchasing_power_note, pricing_strategy}, action_roadmap[], cultural_local_note.`;
+    const promptText = `You are a rural business feasibility analyst for India. Return STRICT JSON only (no markdown). For a ${input.business_category} enterprise in Village ${input.village}, Block ${input.block}, District ${input.district}, State ${input.state}, with margin capital ₹${input.margin_capital} and total project cost ₹${fin.project_cost}. This business uses these raw materials/inputs: ${getSupply(input.business_category).raw.map((r) => r.item).join(', ')}. Keep ALL content strictly specific to ${input.business_category} — do not mention unrelated products or inputs. The independently computed viability score is ${viability.score}/100 and the verdict is "${recommendation.verdict}". Do NOT invent financial numbers. Provide ONLY qualitative fields as JSON keys: executive_summary (string, reflect the "${recommendation.verdict}" verdict honestly), market_reach {consumer_base_estimate, primary_channels[], radius_km, target_segments[]}, opportunity_analysis {unserved_niches[], seasonal_windows[], recommended_positioning}, swot {strengths[], weaknesses[], opportunities[], threats[]}, threats_detailed[{threat, severity, mitigation}], competitor_mapping {estimated_density, competition_level, key_competitors_type[], differentiation_strategy}, product_market_value {suggested_price_range, regional_purchasing_power_note, pricing_strategy}, action_roadmap[], cultural_local_note.`;
 
     let narrative = await callGeminiAI(promptText);
     let ai_provider = narrative ? 'gemini' : null;
@@ -763,9 +775,7 @@ app.post('/api/shops', authenticateToken, async (req, res) => {
     const hasPhoto = typeof b.photo === 'string' && b.photo.startsWith('data:image');
     const hasContact = !!(b.contact && String(b.contact).trim());
 
-    let earned = POINTS.SHOP_DETAILS;
-    if (hasPhoto) earned += POINTS.SHOP_PHOTO;
-    if (hasContact) earned += POINTS.SHOP_CONTACT;
+    const potential = POINTS.SHOP_DETAILS + (hasPhoto ? POINTS.SHOP_PHOTO : 0) + (hasContact ? POINTS.SHOP_CONTACT : 0);
 
     const shop = {
       id: uuidv4(),
@@ -781,14 +791,22 @@ app.post('/api/shops', authenticateToken, async (req, res) => {
       photo: hasPhoto ? b.photo : '',
       upvoters: [],
       upvotes: 0,
-      points_earned: earned,
+      points_potential: potential,
+      points_credited: false,
       created_at: new Date().toISOString(),
     };
     await db.collection('shops').insertOne(shop);
-    await db.collection('users').updateOne({ id: req.user.id }, { $inc: { points: earned } });
+    // Points are NOT awarded yet — they unlock once UPVOTE_THRESHOLD people upvote this shop.
     const user = await db.collection('users').findOne({ id: req.user.id });
     const { _id, ...clean } = shop;
-    res.json({ shop: clean, points_earned: earned, total_points: user.points || 0 });
+    res.json({
+      shop: clean,
+      points_earned: 0,
+      points_pending: potential,
+      upvotes_needed: POINTS.UPVOTE_THRESHOLD,
+      total_points: user.points || 0,
+      message: `Shop added! You'll earn +${potential} points once ${POINTS.UPVOTE_THRESHOLD} people upvote it.`,
+    });
   } catch (err) {
     res.status(500).json({ detail: err.message });
   }
@@ -812,13 +830,24 @@ app.post('/api/shops/:id/upvote', authenticateToken, async (req, res) => {
 
   if (already) {
     await db.collection('shops').updateOne({ id: shop.id }, { $pull: { upvoters: req.user.id }, $inc: { upvotes: -1 } });
-    await db.collection('users').updateOne({ id: shop.user_id }, { $inc: { points: -POINTS.UPVOTE_RECEIVED } });
   } else {
     await db.collection('shops').updateOne({ id: shop.id }, { $addToSet: { upvoters: req.user.id }, $inc: { upvotes: 1 } });
-    await db.collection('users').updateOne({ id: shop.user_id }, { $inc: { points: POINTS.UPVOTE_RECEIVED } });
   }
   const updated = await db.collection('shops').findOne({ id: shop.id });
-  res.json({ upvotes: updated.upvotes, upvoted_by_me: !already });
+
+  // Threshold crediting: owner earns points only once UPVOTE_THRESHOLD people upvote.
+  const potential = updated.points_potential || POINTS.SHOP_DETAILS;
+  let credited = updated.points_credited || false;
+  if (updated.upvotes >= POINTS.UPVOTE_THRESHOLD && !credited) {
+    await db.collection('users').updateOne({ id: shop.user_id }, { $inc: { points: potential } });
+    await db.collection('shops').updateOne({ id: shop.id }, { $set: { points_credited: true } });
+    credited = true;
+  } else if (updated.upvotes < POINTS.UPVOTE_THRESHOLD && credited) {
+    await db.collection('users').updateOne({ id: shop.user_id }, { $inc: { points: -potential } });
+    await db.collection('shops').updateOne({ id: shop.id }, { $set: { points_credited: false } });
+    credited = false;
+  }
+  res.json({ upvotes: updated.upvotes, upvoted_by_me: !already, points_credited: credited, upvotes_needed: POINTS.UPVOTE_THRESHOLD });
 });
 
 app.get('/api/leaderboard', async (req, res) => {

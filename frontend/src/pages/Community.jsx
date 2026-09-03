@@ -15,7 +15,7 @@ const RULES = [
   { pts: '+10', label: 'Add shop details' },
   { pts: '+5', label: 'Attach a photo' },
   { pts: '+3', label: 'Add contact number' },
-  { pts: '+2', label: 'Each upvote you receive' },
+  { pts: '🔓', label: 'Points unlock after 2 upvotes' },
 ];
 
 export default function Community() {
@@ -57,8 +57,8 @@ export default function Community() {
     setLoading(true);
     try {
       const r = await axios.post(`${API}/shops`, form, { headers: authHeaders });
-      toast.success(`You earned +${r.data.points_earned} points!`);
-      setPoints(r.data.total_points);
+      toast.success(r.data.message || 'Shop added!');
+      if (r.data.total_points != null) setPoints(r.data.total_points);
       setForm(empty);
       loadShops();
       loadBoard();
@@ -72,7 +72,7 @@ export default function Community() {
   const upvote = async (shop) => {
     try {
       const r = await axios.post(`${API}/shops/${shop.id}/upvote`, {}, { headers: authHeaders });
-      setShops((list) => list.map((s) => (s.id === shop.id ? { ...s, upvotes: r.data.upvotes, upvoted_by_me: r.data.upvoted_by_me } : s)));
+      setShops((list) => list.map((s) => (s.id === shop.id ? { ...s, upvotes: r.data.upvotes, upvoted_by_me: r.data.upvoted_by_me, points_credited: r.data.points_credited } : s)));
       loadBoard();
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Could not upvote');
@@ -221,7 +221,7 @@ export default function Community() {
           ) : (
             <div className="grid sm:grid-cols-2 gap-4">
               {shops.map((s) => (
-                <div key={s.id} className="border border-border bg-card overflow-hidden flex flex-col" data-testid={`shop-card-${s.id}`}>
+                <div key={s.id} className="group border border-border bg-card overflow-hidden flex flex-col transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-accent/50" data-testid={`shop-card-${s.id}`}>
                   {s.photo ? (
                     <img src={s.photo} alt={s.shop_name} className="h-36 w-full object-cover" />
                   ) : (
@@ -248,6 +248,11 @@ export default function Community() {
                         <ChevronUp size={15} /> {s.upvotes}
                       </Button>
                     </div>
+                    {s.points_credited ? (
+                      <div className="mt-2 flex items-center gap-1 text-[11px] text-secondary font-semibold" data-testid={`unlocked-${s.id}`}><Coins size={12} /> +{s.points_potential} points unlocked for contributor</div>
+                    ) : (
+                      <div className="mt-2 text-[11px] text-muted-foreground" data-testid={`pending-${s.id}`}>🔒 {Math.max(0, 2 - (s.upvotes || 0))} more upvote{2 - (s.upvotes || 0) === 1 ? '' : 's'} to unlock +{s.points_potential} pts</div>
+                    )}
                   </div>
                 </div>
               ))}
