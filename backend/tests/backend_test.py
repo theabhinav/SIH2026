@@ -178,6 +178,37 @@ class TestFeasibility:
         # supply chain
         assert "stages" in f["supply_chain"] and len(f["supply_chain"]["stages"]) >= 4
 
+    def test_openai_provider_and_narrative(self, s, user_a):
+        r = self._gen(s, auth_headers(user_a), "Retail Kirana Store", 100000)
+        assert r.status_code == 200, r.text
+        f = r.json()["feasibility"]
+        assert f.get("ai_provider") == "openai", f"Expected openai, got {f.get('ai_provider')}"
+        assert f.get("ai_used") is True
+        for k in ["executive_summary", "market_reach", "opportunity_analysis", "swot",
+                  "threats_detailed", "competitor_mapping", "product_market_value",
+                  "action_roadmap", "cultural_local_note"]:
+            assert k in f and f[k], f"Missing/empty narrative field: {k}"
+        assert isinstance(f["executive_summary"], str) and len(f["executive_summary"]) > 40
+        assert isinstance(f["action_roadmap"], list) and len(f["action_roadmap"]) >= 3
+
+    def test_multiple_reports_robustness(self, s, user_a):
+        combos = [
+            ("Bakery & Confectionery", 60000, "Musalgaon"),
+            ("Beauty Parlour", 25000, "Pandhurli"),
+            ("Flour Mill", 120000, "Nandurshingote"),
+        ]
+        for cat, margin, v in combos:
+            r = self._gen(s, auth_headers(user_a), cat, margin, village=v)
+            assert r.status_code == 200, f"{cat} failed: {r.status_code} {r.text[:200]}"
+            f = r.json()["feasibility"]
+            assert f.get("ai_provider") == "openai"
+            # Numbers still owned by deterministic engine
+            assert len(f["revenue_model"]["cost_breakdown"]) == 5
+            assert "recommendation" in f and "verdict" in f["recommendation"]
+            assert len(f["government_schemes"]) >= 3
+            assert len(f["vendors"]) > 0
+            assert len(f["supply_chain"]["stages"]) >= 4
+
     def test_viability_varies(self, s, user_a):
         combos = [
             ("Retail Kirana Store", 8000, "Musalgaon"),

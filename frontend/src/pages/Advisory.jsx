@@ -216,7 +216,7 @@ export default function Advisory() {
             <div>
               <h2 className="font-display text-2xl font-extrabold text-primary tracking-tight">Ready to generate your advisory</h2>
               <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
-                Gemini 3.1 Pro will analyse <b>{form.village}</b> for a <b>{form.business_category}</b> enterprise with ₹{form.margin_capital.toLocaleString('en-IN')} margin.
+                OpenAI GPT will analyse <b>{form.village}</b> for a <b>{form.business_category}</b> enterprise with ₹{form.margin_capital.toLocaleString('en-IN')} margin.
               </p>
             </div>
             <Button size="lg" onClick={generate} disabled={loading} className="rounded-full h-14 px-10 gap-2" data-testid="generate-btn">
