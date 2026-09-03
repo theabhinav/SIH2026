@@ -20,7 +20,7 @@ export default function Landing() {
           <div className="lg:col-span-7 space-y-8">
             <div className="inline-flex items-center gap-2 border border-border bg-card px-4 py-1.5 rounded-full text-xs tracking-[0.2em] uppercase font-bold">
               <Sparkles size={12} className="text-accent" />
-              <span>Powered by OpenAI GPT</span>
+              <span>Powered by Gemini 3.1 Pro</span>
             </div>
             <h1 className="font-display text-4xl sm:text-5xl lg:text-7xl tracking-tighter font-black leading-[0.95] text-primary">
               {t(lang, 'heroTitle')}

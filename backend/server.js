@@ -5,7 +5,6 @@ const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const { MongoClient } = require('mongodb');
 const https = require('https');
-const { spawn } = require('child_process');
 require('dotenv').config();
 
 const app = express();
@@ -515,30 +514,7 @@ function buildSupplyChain(input, vendors) {
   };
 }
 
-// ---------- OpenAI ChatGPT (via Emergent Universal Key, Python helper) ----------
-const PY_BIN = '/root/.venv/bin/python';
-function callOpenAI(promptText) {
-  return new Promise((resolve) => {
-    if (!process.env.EMERGENT_LLM_KEY && !process.env.OPENAI_API_KEY) return resolve(null);
-    const py = spawn(PY_BIN, [path.join(__dirname, 'llm_helper.py')], { env: process.env });
-    let out = '';
-    const timer = setTimeout(() => { try { py.kill('SIGKILL'); } catch (e) {} resolve(null); }, 45000);
-    py.stdout.on('data', (d) => (out += d.toString()));
-    py.stderr.on('data', (d) => console.warn('[llm_helper]', d.toString().slice(0, 300)));
-    py.on('close', () => {
-      clearTimeout(timer);
-      try {
-        const m = out.match(/\{[\s\S]*\}/);
-        resolve(m ? JSON.parse(m[0]) : null);
-      } catch (e) { console.warn('[callOpenAI] parse failed'); resolve(null); }
-    });
-    py.on('error', () => { clearTimeout(timer); resolve(null); });
-    py.stdin.write(promptText);
-    py.stdin.end();
-  });
-}
-
-// ---------- Gemini AI (user's own key, optional backup) ----------
+// ---------- Gemini AI (user's own key, optional) ----------
 async function callGeminiAI(promptText) {
   if (!GEMINI_API_KEY) return null;
   return new Promise((resolve) => {
@@ -709,12 +685,8 @@ app.post('/api/feasibility/generate', optionalToken, async (req, res) => {
 
     const promptText = `You are a rural business feasibility analyst for India. Return STRICT JSON only (no markdown). For a ${input.business_category} enterprise in Village ${input.village}, Block ${input.block}, District ${input.district}, State ${input.state}, with margin capital ₹${input.margin_capital} and total project cost ₹${fin.project_cost}. The independently computed viability score is ${viability.score}/100 and the verdict is "${recommendation.verdict}". Do NOT invent financial numbers. Provide ONLY qualitative fields as JSON keys: executive_summary (string, reflect the "${recommendation.verdict}" verdict honestly), market_reach {consumer_base_estimate, primary_channels[], radius_km, target_segments[]}, opportunity_analysis {unserved_niches[], seasonal_windows[], recommended_positioning}, swot {strengths[], weaknesses[], opportunities[], threats[]}, threats_detailed[{threat, severity, mitigation}], competitor_mapping {estimated_density, competition_level, key_competitors_type[], differentiation_strategy}, product_market_value {suggested_price_range, regional_purchasing_power_note, pricing_strategy}, action_roadmap[], cultural_local_note.`;
 
-    let narrative = await callOpenAI(promptText);
-    let ai_provider = narrative ? 'openai' : null;
-    if (!narrative) {
-      narrative = await callGeminiAI(promptText);
-      if (narrative) ai_provider = 'gemini';
-    }
+    let narrative = await callGeminiAI(promptText);
+    let ai_provider = narrative ? 'gemini' : null;
     const ai_used = !!narrative;
     if (!narrative) narrative = narrativeFallback(input, fin, rev, viability, recommendation);
 
