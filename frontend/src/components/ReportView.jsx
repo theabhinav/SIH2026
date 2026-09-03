@@ -213,7 +213,7 @@ export default function ReportView({ report, onReset }) {
               <Sparkles size={14} className="text-accent" /> {t(lang, 'feasibilityReportBanner') || 'Feasibility Report · Grameen Udyog'}
             </span>
             <span className="bg-primary-foreground/15 text-primary-foreground px-3 py-1 rounded-full backdrop-blur-sm font-semibold tracking-normal text-xs">
-              AI Powered Analysis
+              {t(lang, 'institutionalAnalysis') || 'Institutional Feasibility Analysis'}
             </span>
           </div>
           <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight mb-3 leading-tight">
