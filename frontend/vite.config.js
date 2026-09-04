@@ -10,6 +10,7 @@ export default defineConfig(({ mode }) => {
       alias: { '@': path.resolve(__dirname, 'src') },
     },
     define: {
+      'process.env': {},
       'process.env.REACT_APP_BACKEND_URL': JSON.stringify(env.REACT_APP_BACKEND_URL || ''),
     },
     server: {
