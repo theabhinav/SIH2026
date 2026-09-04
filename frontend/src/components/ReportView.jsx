@@ -6,7 +6,8 @@ import { Card } from '@/components/ui/card';
 import { 
   ArrowLeft, Download, Sparkles, MapPin, TrendingUp, ShieldAlert, 
   Users, IndianRupee, Target, ListChecks, Landmark, Info, Wallet, 
-  FileText, CheckCircle2, Phone, Store, Award, ExternalLink
+  FileText, CheckCircle2, Phone, Store, Award, ExternalLink,
+  AlertTriangle, Zap, Building2
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
 import jsPDF from 'jspdf';
@@ -124,6 +125,21 @@ export default function ReportView({ report, onReset }) {
   const supplyChain = localizedReport.supply_chain_map || localizedReport.supply_chain || localizedReport.feasibility?.supply_chain_map || {};
   const narrative = localizedReport.narrative || {};
 
+  const isExpansion = report.advisory_type === 'expansion' || input.advisory_type === 'expansion';
+  const adequacy = report.capital_adequacy || {
+    is_enough: (fin.margin_capital || 0) >= 10000,
+    status: (fin.margin_capital || 0) >= 10000 ? 'sufficient' : 'shortfall',
+    badge_text: (fin.margin_capital || 0) >= 10000 ? 'Capital is Sufficient' : 'Capital Shortfall',
+    min_required_margin: 10000,
+    min_project_cost: 100000,
+    shortfall: Math.max(0, 10000 - (fin.margin_capital || 0)),
+    message: (fin.margin_capital || 0) >= 10000 ? 'Capital meets minimum setup requirement.' : 'Capital is below minimum setup requirement.',
+    advice: 'Government subsidy under PMEGP provides up to 35% margin money assistance.',
+  };
+  const expansionModel = report.expansion_model;
+  const primaryScheme = schemes.find((s) => s.primary) || schemes[0] || {};
+  const maxSubsidy = schemes.reduce((m, s) => Math.max(m, s.exact_subsidy_amount || 0), 0) || primaryScheme.exact_subsidy_amount || Math.round(fin.project_cost * 0.25);
+
   const f = {
     ...narrative,
     ...localizedReport.feasibility,
@@ -175,6 +191,15 @@ export default function ReportView({ report, onReset }) {
 
   const categoryTitle = CATEGORY_I18N[lang]?.[input.business_category] || input.business_category;
 
+  const isProposedEnterprise = !!(report.is_proposed_enterprise || viability.is_proposed_enterprise || narrative.is_proposed_enterprise || f.is_proposed_enterprise || (!isExpansion && viability.score < 60));
+  const proposedEnterprise = report.proposed_enterprise || narrative.proposed_enterprise || f.proposed_enterprise || {};
+  const marketReach = f.market_reach || narrative.market_reach || {};
+  const oppAnalysis = f.opportunity_analysis || narrative.opportunity_analysis || {};
+  const compMapping = f.competitor_mapping || narrative.competitor_mapping || {};
+  const pmValue = f.product_market_value || narrative.product_market_value || {};
+  const pricingMatrix = pmValue.pricing_matrix || [];
+  const valueAddNiches = oppAnalysis.value_add_niches || [];
+
   const TABS = [
     { id: 'overview', label: TAB_LABELS.overview[lang] || TAB_LABELS.overview.en, icon: Sparkles },
     { id: 'schemes', label: TAB_LABELS.schemes[lang] || TAB_LABELS.schemes.en, icon: Landmark, count: schemes.length },
@@ -210,10 +235,18 @@ export default function ReportView({ report, onReset }) {
         <div className="relative z-10">
           <div className="flex flex-wrap items-center justify-between gap-3 text-xs tracking-[0.3em] uppercase mb-3 opacity-85">
             <span className="flex items-center gap-1.5 font-bold">
-              <Sparkles size={14} className="text-accent" /> {t(lang, 'feasibilityReportBanner') || 'Feasibility Report · Grameen Udyog'}
+              <Sparkles size={14} className="text-accent" /> {isExpansion ? 'Business Extension Advisory' : (t(lang, 'feasibilityReportBanner') || 'Feasibility Report · Grameen Udyog')}
             </span>
-            <span className="bg-primary-foreground/15 text-primary-foreground px-3 py-1 rounded-full backdrop-blur-sm font-semibold tracking-normal text-xs">
-              AI Powered Analysis
+            <span className={`px-3 py-1 rounded-full backdrop-blur-sm font-semibold tracking-normal text-xs ${
+              isProposedEnterprise 
+                ? 'bg-accent text-accent-foreground font-black' 
+                : 'bg-primary-foreground/15 text-primary-foreground'
+            }`}>
+              {isProposedEnterprise
+                ? `💡 ${t(lang, 'proposedEnterpriseBadge')}`
+                : isExpansion
+                ? '🚀 Business Extension & Upgradation'
+                : '🌱 New Enterprise Setup'}
             </span>
           </div>
           <h1 className="font-display text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight mb-3 leading-tight">
@@ -231,16 +264,28 @@ export default function ReportView({ report, onReset }) {
               <div className="text-xs font-semibold text-accent mt-1">{f.viability_label}</div>
             </div>
             <div className="bg-primary-foreground/10 p-4 rounded-xl backdrop-blur-sm">
-              <div className="text-xs tracking-[0.2em] uppercase opacity-70 font-bold">{t(lang, 'projectCost')}</div>
-              <div className="font-display font-black text-2xl sm:text-3xl mt-1 tabular-nums">{inr(fin.project_cost)}</div>
+              <div className="text-xs tracking-[0.2em] uppercase opacity-70 font-bold">
+                {isExpansion ? (lang === 'hi' ? 'कुल विस्तार लागत' : 'Total Expansion Cost') : t(lang, 'projectCost')}
+              </div>
+              <div className="font-display font-black text-2xl sm:text-3xl mt-1 tabular-nums">
+                {inr(isExpansion && expansionModel ? expansionModel.expansion_project_cost : fin.project_cost)}
+              </div>
             </div>
             <div className="bg-primary-foreground/10 p-4 rounded-xl backdrop-blur-sm">
-              <div className="text-xs tracking-[0.2em] uppercase opacity-70 font-bold">{t(lang, 'loanEligibility')}</div>
-              <div className="font-display font-black text-2xl sm:text-3xl mt-1 tabular-nums text-accent">{inr(fin.approved_loan)}</div>
+              <div className="text-xs tracking-[0.2em] uppercase opacity-70 font-bold">
+                {isExpansion ? (lang === 'hi' ? 'विस्तार ऋण' : 'Expansion Loan') : t(lang, 'loanEligibility')}
+              </div>
+              <div className="font-display font-black text-2xl sm:text-3xl mt-1 tabular-nums text-secondary">
+                {inr(isExpansion && expansionModel ? expansionModel.loan_needed : fin.approved_loan)}
+              </div>
             </div>
             <div className="bg-primary-foreground/10 p-4 rounded-xl backdrop-blur-sm">
-              <div className="text-xs tracking-[0.2em] uppercase opacity-70 font-bold">{t(lang, 'emi')}</div>
-              <div className="font-display font-black text-2xl sm:text-3xl mt-1 tabular-nums">{inr(fin.emi)}</div>
+              <div className="text-xs tracking-[0.2em] uppercase opacity-70 font-bold">
+                {t(lang, 'eligibleGovtSubsidy')}
+              </div>
+              <div className="font-display font-black text-2xl sm:text-3xl mt-1 tabular-nums text-secondary">
+                {inr(maxSubsidy)}
+              </div>
             </div>
           </div>
         </div>
@@ -281,6 +326,54 @@ export default function ReportView({ report, onReset }) {
         {/* TAB 1: OVERVIEW & VIABILITY */}
         {(activeTab === 'overview' || activeTab === 'all') && (
           <div className="space-y-6 animate-fadeIn">
+            {/* PROPOSED DIFFERENTIATED ENTERPRISE BANNER */}
+            {isProposedEnterprise && (
+              <div className="border-2 border-accent/80 bg-gradient-to-r from-accent/15 via-accent/5 to-card p-6 lg:p-8 rounded-2xl shadow-md relative overflow-hidden" data-testid="proposed-enterprise-banner">
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-accent text-accent-foreground text-xs font-black tracking-widest uppercase rounded-full shadow-xs">
+                    <Sparkles size={14} /> {t(lang, 'proposedEnterpriseBadge')}
+                  </span>
+                  {compMapping.saturation_index && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/15 text-amber-900 font-bold text-xs rounded-full border border-amber-500/30">
+                      <AlertTriangle size={13} /> {compMapping.saturation_index}% {t(lang, 'marketSaturationIndex')} ({compMapping.competitor_count || 6}+ {t(lang, 'competitorsInRadius')})
+                    </span>
+                  )}
+                </div>
+                <h3 className="font-display font-black text-2xl lg:text-3xl text-primary tracking-tight">
+                  {lang === 'hi' && proposedEnterprise.model_name_hi ? proposedEnterprise.model_name_hi : (proposedEnterprise.model_name || `Specialized ${input.business_category} Value-Added Hub`)}
+                </h3>
+                <p className="text-sm font-semibold text-accent mt-1">
+                  {proposedEnterprise.tagline || t(lang, 'proposedEnterpriseDesc')}
+                </p>
+
+                <div className="mt-5 p-4 bg-background/90 rounded-xl border border-border text-xs leading-relaxed space-y-3">
+                  <div>
+                    <span className="font-bold text-primary uppercase tracking-wider text-[11px] block mb-1">
+                      📌 {t(lang, 'strategicPivotReason')}:
+                    </span>
+                    <p className="text-foreground leading-relaxed">
+                      {proposedEnterprise.saturation_rationale || proposedEnterprise.trigger_reason || 'Local business density is high. The proposed enterprise targets specialized value-added product lines and institutional linkages, bypassing generic commodity price competition.'}
+                    </p>
+                  </div>
+
+                  {proposedEnterprise.key_differentiators?.length > 0 && (
+                    <div className="pt-3 border-t border-border/60">
+                      <span className="font-bold text-primary uppercase tracking-wider text-[11px] block mb-2">
+                        🚀 {t(lang, 'keyDifferentiators')}:
+                      </span>
+                      <div className="grid sm:grid-cols-3 gap-2.5">
+                        {proposedEnterprise.key_differentiators.map((diff, idx) => (
+                          <div key={idx} className="flex items-start gap-2 bg-muted/40 p-2.5 rounded-lg border border-border/50 text-[11px]">
+                            <CheckCircle2 size={14} className="text-secondary mt-0.5 flex-shrink-0" />
+                            <span className="font-medium text-foreground">{diff}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
             {rec.verdict && (() => {
               const toneMap = {
                 positive: 'border-secondary/50 bg-secondary/10',
@@ -308,28 +401,317 @@ export default function ReportView({ report, onReset }) {
               );
             })()}
 
-            <div className="grid lg:grid-cols-2 gap-6">
+        {/* Dedicated Capital Adequacy & Investment Assessment Card */}
+        <div className="border border-border bg-card p-8 rounded-xl shadow-xs" data-testid="section-capital-assessment">
+          <div className="flex items-start justify-between flex-wrap gap-4 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-primary text-primary-foreground flex items-center justify-center flex-shrink-0 rounded-lg">
+                <Zap size={18} strokeWidth={1.75} />
+              </div>
+              <div>
+                <h3 className="font-display font-bold text-xl text-primary tracking-tight">
+                  {isExpansion
+                    ? t(lang, 'requiredExpansionCapital')
+                    : t(lang, 'capitalSufficiencyTitle')}
+                </h3>
+                <p className="text-xs tracking-[0.15em] uppercase text-muted-foreground mt-0.5">
+                  {isExpansion
+                    ? t(lang, 'businessExtensionDesc')
+                    : t(lang, 'marginExplanation')}
+                </p>
+              </div>
+            </div>
+
+            {/* Status Badge */}
+            {isExpansion ? (
+              <span
+                className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full ${
+                  expansionModel?.is_enough
+                    ? 'bg-secondary text-secondary-foreground'
+                    : 'bg-accent text-accent-foreground'
+                }`}
+              >
+                {expansionModel?.is_enough ? <CheckCircle2 size={13} /> : <AlertTriangle size={13} />}
+                {expansionModel?.is_enough
+                  ? t(lang, 'capitalEnough')
+                  : `${t(lang, 'capitalShortfall')}: ${inr(expansionModel?.shortfall)}`}
+              </span>
+            ) : (
+              <span
+                className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-full ${
+                  adequacy.status === 'sufficient'
+                    ? 'bg-secondary text-secondary-foreground'
+                    : adequacy.status === 'marginal'
+                    ? 'bg-amber-500 text-white'
+                    : 'bg-destructive text-destructive-foreground'
+                }`}
+              >
+                {adequacy.status === 'sufficient' ? (
+                  <CheckCircle2 size={13} />
+                ) : (
+                  <AlertTriangle size={13} />
+                )}
+                {adequacy.status === 'sufficient'
+                  ? t(lang, 'capitalEnough')
+                  : adequacy.status === 'marginal'
+                  ? t(lang, 'affordabilityModerate')
+                  : `${t(lang, 'capitalShortfall')}: ${inr(adequacy.shortfall)}`}
+              </span>
+            )}
+          </div>
+
+          {/* Cards Grid */}
+          {isExpansion && expansionModel ? (
+            <div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+                <div className="border border-border p-4 bg-muted/20">
+                  <div className="text-[10px] uppercase text-muted-foreground font-semibold">{t(lang, 'expansionProjectCost')}</div>
+                  <div className="font-display font-bold text-2xl text-primary tabular-nums mt-1">
+                    {inr(expansionModel.expansion_project_cost)}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">{t(lang, 'assetCapacityAddition')}</div>
+                </div>
+
+                <div className="border border-accent/40 p-4 bg-accent/5">
+                  <div className="text-[10px] uppercase text-accent font-semibold">{t(lang, 'requiredExpansionCapital')}</div>
+                  <div className="font-display font-bold text-2xl text-accent tabular-nums mt-1">
+                    {inr(expansionModel.required_margin_capital)}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">{t(lang, 'tenPercentMargin')}</div>
+                </div>
+
+                <div className="border border-border p-4 bg-muted/20">
+                  <div className="text-[10px] uppercase text-muted-foreground font-semibold">{t(lang, 'availableExpansionCapital')}</div>
+                  <div className="font-display font-bold text-2xl text-primary tabular-nums mt-1">
+                    {inr(expansionModel.available_margin)}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                    {expansionModel.is_enough ? `${t(lang, 'surplusCapital')}: ${inr(expansionModel.surplus)}` : `${t(lang, 'capitalShortfall')}: ${inr(expansionModel.shortfall)}`}
+                  </div>
+                </div>
+
+                <div className="border border-secondary/40 p-4 bg-secondary/5">
+                  <div className="text-[10px] uppercase text-secondary font-semibold">{t(lang, 'eligibleGovtSubsidy')}</div>
+                  <div className="font-display font-bold text-2xl text-secondary tabular-nums mt-1">
+                    {inr(maxSubsidy)}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">{t(lang, 'subsidyRateTag')}</div>
+                </div>
+              </div>
+
+              {/* Expansion Revenue Impact & Payback */}
+              <div className="grid sm:grid-cols-3 gap-3 p-4 border border-border bg-background text-sm">
+                <div>
+                  <span className="text-xs text-muted-foreground uppercase tracking-wider block">{t(lang, 'turnoverBoost')}</span>
+                  <span className="font-display font-bold text-lg text-primary">
+                    +{expansionModel.growth_percentage}% ({inr(expansionModel.incremental_monthly_revenue)}/{t(lang, 'monthsUnit')})
+                  </span>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground uppercase tracking-wider block">{t(lang, 'extraMonthlyProfit')}</span>
+                  <span className="font-display font-bold text-lg text-secondary">
+                    +{inr(expansionModel.incremental_monthly_profit)}/{t(lang, 'monthsUnit')}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground uppercase tracking-wider block">{t(lang, 'estimatedPayback')}</span>
+                  <span className="font-display font-bold text-lg text-accent">
+                    ~{expansionModel.payback_months} {t(lang, 'monthsUnit')} ({expansionModel.expansion_roi_annual}% Annual ROI)
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+                <div className="border border-border p-4 bg-muted/20">
+                  <div className="text-[10px] uppercase text-muted-foreground font-semibold">{t(lang, 'yourInvestedCapital')}</div>
+                  <div className="font-display font-bold text-2xl text-primary tabular-nums mt-1">
+                    {inr(fin.margin_capital)}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">{t(lang, 'tenPercentMargin')}</div>
+                </div>
+
+                <div className="border border-border p-4 bg-muted/20">
+                  <div className="text-[10px] uppercase text-muted-foreground font-semibold">{t(lang, 'minRequiredCapital')}</div>
+                  <div className="font-display font-bold text-2xl text-primary tabular-nums mt-1">
+                    {inr(adequacy.min_required_margin)}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">{t(lang, 'minSetupCostDesc')}</div>
+                </div>
+
+                <div className="border border-border p-4 bg-muted/20">
+                  <div className="text-[10px] uppercase text-muted-foreground font-semibold">{t(lang, 'totalSupportedProject')}</div>
+                  <div className="font-display font-bold text-2xl text-accent tabular-nums mt-1">
+                    {inr(fin.project_cost)}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">{t(lang, 'tenTimesMargin')}</div>
+                </div>
+
+                <div className="border border-secondary/40 p-4 bg-secondary/5">
+                  <div className="text-[10px] uppercase text-secondary font-semibold">{t(lang, 'eligibleGovtSubsidy')}</div>
+                  <div className="font-display font-bold text-2xl text-secondary tabular-nums mt-1">
+                    {inr(maxSubsidy)}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">{t(lang, 'subsidyRateTag')}</div>
+                </div>
+              </div>
+
+              {/* Minimum Loan Required and Loan Eligibility Status Banner */}
+              <div className="grid sm:grid-cols-2 gap-3 mb-4 text-xs">
+                <div className="border border-border p-3 bg-muted/20 rounded">
+                  <span className="text-[10px] uppercase text-muted-foreground font-semibold block">
+                    {t(lang, 'minLoanRequired')}
+                  </span>
+                  <span className="font-display font-bold text-xl text-primary block mt-0.5">
+                    {inr(adequacy.min_loan_required || Math.max(0, (adequacy.min_project_cost || 100000) - (fin.margin_capital || 0)))}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground block mt-0.5">
+                    {t(lang, 'minLoanRequiredDesc')}
+                  </span>
+                </div>
+
+                <div className={`border p-3 rounded ${
+                  adequacy.is_enough
+                    ? 'border-secondary/50 bg-secondary/10 text-secondary-foreground'
+                    : 'border-destructive/50 bg-destructive/10 text-destructive-foreground'
+                }`}>
+                  <span className="text-[10px] uppercase font-semibold block opacity-90">
+                    {t(lang, 'loanEligibilityStatus')}
+                  </span>
+                  <span className="font-display font-bold text-base flex items-center gap-1.5 mt-0.5">
+                    {adequacy.is_enough ? (
+                      <>
+                        <CheckCircle2 size={16} className="text-secondary flex-shrink-0" />
+                        <span className="text-secondary">
+                          {t(lang, 'eligibleForLoan')}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <AlertTriangle size={16} className="text-destructive flex-shrink-0" />
+                        <span className="text-destructive">
+                          {t(lang, 'ineligibleLoan')}
+                        </span>
+                      </>
+                    )}
+                  </span>
+                  <span className="text-[11px] block mt-0.5 opacity-90">
+                    {adequacy.is_enough
+                      ? t(lang, 'safeMarginBadge')
+                      : `${t(lang, 'shortfallMarginBadge')} (${inr(adequacy.shortfall || 0)})`}
+                  </span>
+                </div>
+              </div>
+
+              {/* Capex and Working Capital Benchmarks */}
+              {adequacy.capex_min && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4 text-xs">
+                  <div className="border border-border p-2.5 bg-background">
+                    <span className="text-[10px] text-muted-foreground uppercase block font-semibold">{t(lang, 'minFixedCapex')}</span>
+                    <span className="font-bold text-primary">{inr(adequacy.capex_min)}</span>
+                  </div>
+                  <div className="border border-border p-2.5 bg-background">
+                    <span className="text-[10px] text-muted-foreground uppercase block font-semibold">{t(lang, 'workingCapitalStock')}</span>
+                    <span className="font-bold text-primary">{inr(adequacy.working_capital_min)}</span>
+                  </div>
+                  <div className="border border-border p-2.5 bg-background">
+                    <span className="text-[10px] text-muted-foreground uppercase block font-semibold">{t(lang, 'minRequiredCapital')}</span>
+                    <span className="font-bold text-primary">{inr(adequacy.min_required_margin)}</span>
+                  </div>
+                  <div className="border border-border p-2.5 bg-background">
+                    <span className="text-[10px] text-muted-foreground uppercase block font-semibold">{t(lang, 'safeRecommendedMargin')}</span>
+                    <span className="font-bold text-secondary">{inr(adequacy.recommended_margin)}</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="p-4 border border-border bg-background text-sm space-y-1.5">
+                <div className="font-semibold text-primary">{adequacy.message}</div>
+                <div className="text-xs text-muted-foreground leading-relaxed">{adequacy.advice}</div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="grid lg:grid-cols-2 gap-6">
               {f.executive_summary && (
                 <Section icon={FileText} title={t(lang, 'executiveSummary')} testId="section-summary">
                   <p className="text-base leading-relaxed text-foreground">{f.executive_summary}</p>
                 </Section>
               )}
 
-              <Section icon={TrendingUp} title={t(lang, 'marketReach')} subtitle={`${f.market_reach?.radius_km || 8} km radius`} testId="section-market">
-                <p className="text-sm leading-relaxed mb-4">{f.market_reach?.consumer_base_estimate}</p>
+              {/* Comprehensive Market Reach and Demand Analysis Card */}
+              <Section icon={TrendingUp} title={t(lang, 'marketReachAndDemand') || 'Market Reach and Demand Analysis'} subtitle={`${marketReach.radius_km || 8} km ${t(lang, 'kmRadius') || 'radius'}`} testId="section-market">
+                <p className="text-sm leading-relaxed mb-4 text-foreground">{marketReach.consumer_base_estimate}</p>
+                
+                {/* 4 Metrics Grid */}
+                <div className="grid grid-cols-2 gap-3 mb-5">
+                  <div className="border border-border p-3 rounded-lg bg-muted/20">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground block">{t(lang, 'consumerHouseholds')}</span>
+                    <span className="font-display font-extrabold text-xl text-primary mt-0.5 block">
+                      {marketReach.household_count ? marketReach.household_count.toLocaleString('en-IN') : '8,500'}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">~{marketReach.population_estimate ? marketReach.population_estimate.toLocaleString('en-IN') : '38,000'} population</span>
+                  </div>
+
+                  <div className="border border-border p-3 rounded-lg bg-muted/20">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground block">{t(lang, 'monthlyDemandVolume')}</span>
+                    <span className="font-display font-extrabold text-xl text-primary mt-0.5 block">
+                      {inr(marketReach.monthly_demand_volume || (rev.monthly_revenue * 3.2))}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">Catchment area potential</span>
+                  </div>
+
+                  <div className="border border-border p-3 rounded-lg bg-muted/20">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground block">{t(lang, 'demandVelocity')}</span>
+                    <span className="font-bold text-sm text-secondary mt-0.5 block">
+                      {marketReach.demand_velocity || 'High Daily Frequency'}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">Recurring essential spend</span>
+                  </div>
+
+                  <div className="border border-border p-3 rounded-lg bg-muted/20">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground block">{t(lang, 'catchmentRadius')}</span>
+                    <span className="font-display font-extrabold text-xl text-primary mt-0.5 block">
+                      {marketReach.radius_km || 8} km
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">Radial coverage zone</span>
+                  </div>
+                </div>
+
+                {/* Sales & Distribution Channels */}
                 <div className="space-y-3">
                   <div>
-                    <div className="text-xs tracking-[0.15em] uppercase text-muted-foreground mb-1 font-bold">{t(lang, 'salesChannels') || 'Sales Channels'}</div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {f.market_reach?.primary_channels?.map((c, i) => (
-                        <span key={i} className="text-xs bg-muted font-medium px-3 py-1 rounded-full">{c}</span>
-                      ))}
+                    <div className="text-xs tracking-[0.15em] uppercase text-muted-foreground mb-2 font-bold">{t(lang, 'distributionChannels')}</div>
+                    <div className="space-y-2">
+                      {Array.isArray(marketReach.primary_channels) && marketReach.primary_channels.length > 0 && typeof marketReach.primary_channels[0] === 'object' ? (
+                        marketReach.primary_channels.map((c, i) => (
+                          <div key={i} className="bg-background border border-border p-2.5 rounded-lg text-xs">
+                            <div className="flex justify-between font-bold mb-1">
+                              <span className="text-primary">{c.channel}</span>
+                              <span className="text-accent">{c.share_pct}%</span>
+                            </div>
+                            <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden mb-1">
+                              <div className="h-full bg-accent rounded-full" style={{ width: `${c.share_pct}%` }} />
+                            </div>
+                            <div className="text-[11px] text-muted-foreground">{c.desc}</div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="flex flex-wrap gap-1.5">
+                          {(marketReach.primary_channels || []).map((c, i) => (
+                            <span key={i} className="text-xs bg-muted font-medium px-3 py-1 rounded-full">{typeof c === 'object' ? c.channel : c}</span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <div>
-                    <div className="text-xs tracking-[0.15em] uppercase text-muted-foreground mb-1 font-bold">{t(lang, 'targetCustomers') || 'Target Customers'}</div>
+
+                  <div className="pt-2">
+                    <div className="text-xs tracking-[0.15em] uppercase text-muted-foreground mb-1.5 font-bold">{t(lang, 'targetCustomers')}</div>
                     <div className="flex flex-wrap gap-1.5">
-                      {f.market_reach?.target_segments?.map((c, i) => (
+                      {(marketReach.target_segments || []).map((c, i) => (
                         <span key={i} className="text-xs bg-secondary/15 text-secondary font-semibold px-3 py-1 rounded-full">{c}</span>
                       ))}
                     </div>
@@ -422,6 +804,72 @@ export default function ReportView({ report, onReset }) {
         {/* TAB 3: SWOT & RISKS */}
         {(activeTab === 'swot' || activeTab === 'all') && (
           <div className="space-y-6 animate-fadeIn">
+            {/* UNTAPPED MARKET OPPORTUNITIES & VALUE ADDITION (HIGH MARGIN NICHES) */}
+            <Section 
+              icon={Sparkles} 
+              title={t(lang, 'untappedOpportunitiesTitle') || 'Untapped Market Opportunities & Value Addition'} 
+              subtitle={t(lang, 'valueAdditionNiches') || 'High-Margin Value Addition Niches'} 
+              testId="section-untapped-opportunities"
+            >
+              {/* Value Addition Niches Grid */}
+              {valueAddNiches.length > 0 && (
+                <div className="grid md:grid-cols-2 gap-4 mb-6">
+                  {valueAddNiches.map((niche, idx) => (
+                    <div key={idx} className="border border-border p-5 rounded-xl bg-background shadow-xs hover:border-accent/40 transition-colors">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <h4 className="font-bold text-base text-primary">{niche.title}</h4>
+                        {niche.marginJump && (
+                          <span className="text-xs font-black text-secondary bg-secondary/10 border border-secondary/30 px-2.5 py-0.5 rounded-full whitespace-nowrap">
+                            {niche.marginJump} {t(lang, 'marginJump')}
+                          </span>
+                        )}
+                      </div>
+                      
+                      <p className="text-xs text-muted-foreground leading-relaxed mb-4">{niche.description}</p>
+                      
+                      {/* Margin Comparison Row */}
+                      <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/60 mb-3 text-xs">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-muted-foreground block">{t(lang, 'rawCommodityMargin')}</span>
+                          <span className="font-bold text-foreground text-sm">{niche.rawMargin || '12% – 15%'}</span>
+                        </div>
+                        <span className="text-muted-foreground font-bold">➔</span>
+                        <div className="text-right">
+                          <span className="text-[10px] uppercase font-bold text-secondary block">{t(lang, 'valueAddMargin')}</span>
+                          <span className="font-extrabold text-secondary text-base">{niche.valueAddedMargin || '35% – 45%'}</span>
+                        </div>
+                      </div>
+
+                      {/* Value Add Techniques */}
+                      {niche.techniques && (
+                        <div className="text-[11px] text-muted-foreground bg-accent/5 p-2.5 rounded-lg border border-accent/20">
+                          <span className="font-bold text-accent uppercase tracking-wider block mb-0.5">🛠️ {t(lang, 'valueAddTechniques')}:</span>
+                          <span>{niche.techniques}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Untapped Customer Segments */}
+              {oppAnalysis.untapped_segments?.length > 0 && (
+                <div className="p-4 bg-muted/20 border border-border/80 rounded-xl">
+                  <div className="text-xs tracking-[0.15em] uppercase text-muted-foreground font-bold mb-3">
+                    🎯 {t(lang, 'untappedSegments')}
+                  </div>
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                    {oppAnalysis.untapped_segments.map((seg, i) => (
+                      <div key={i} className="flex items-center gap-2 bg-background p-2.5 rounded-lg border border-border text-xs font-medium">
+                        <CheckCircle2 size={14} className="text-secondary flex-shrink-0" />
+                        <span>{seg}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </Section>
+
             <Section icon={Target} title={t(lang, 'opportunityAndSwot') || 'Opportunity & SWOT'} testId="section-swot">
               <div className="grid md:grid-cols-2 gap-6 mb-6">
                 <div>
@@ -470,47 +918,143 @@ export default function ReportView({ report, onReset }) {
         {/* TAB 4: MARKET & PRICING */}
         {(activeTab === 'pricing' || activeTab === 'all') && (
           <div className="space-y-6 animate-fadeIn">
-            <div className="grid lg:grid-cols-2 gap-6">
-              <Section icon={Users} title={t(lang, 'competitors')} subtitle={f.competitor_mapping?.competition_level} testId="section-competitors">
-                <p className="text-sm leading-relaxed mb-4">{f.competitor_mapping?.estimated_density}</p>
-                <div className="space-y-3">
-                  <div>
-                    <div className="text-xs tracking-[0.15em] uppercase text-muted-foreground font-bold mb-1">{t(lang, 'keyCompetitorTypes') || 'Key Competitor Types'}</div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {f.competitor_mapping?.key_competitors_type?.map((c, i) => (
-                        <span key={i} className="text-xs border border-border bg-muted/30 px-3 py-1 rounded-full font-medium">{c}</span>
-                      ))}
-                    </div>
+            {/* COMPETITOR DENSITY & MARKET SATURATION INDEX */}
+            <Section 
+              icon={Users} 
+              title={t(lang, 'competitorDensityTitle') || 'Competitor Density & Saturation Index'} 
+              subtitle={compMapping.competition_level || 'Market Density Analysis'} 
+              testId="section-competitors"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-5">
+                <div className="border border-border p-4 rounded-xl bg-muted/20">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground block">{t(lang, 'marketSaturationIndex')}</span>
+                  <div className="flex items-baseline justify-between mt-1">
+                    <span className="font-display font-extrabold text-2xl text-primary">{compMapping.saturation_index || 45}%</span>
+                    <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
+                      (compMapping.saturation_index || 45) >= 70 
+                        ? 'bg-destructive/15 text-destructive border border-destructive/30' 
+                        : (compMapping.saturation_index || 45) >= 50 
+                        ? 'bg-amber-500/15 text-amber-800 border border-amber-500/30'
+                        : 'bg-secondary/15 text-secondary border border-secondary/30'
+                    }`}>
+                      {(compMapping.saturation_index || 45) >= 75 ? t(lang, 'saturationCritical') : (compMapping.saturation_index || 45) >= 55 ? t(lang, 'saturationHigh') : (compMapping.saturation_index || 45) >= 35 ? t(lang, 'saturationModerate') : t(lang, 'saturationLow')}
+                    </span>
                   </div>
-                  <div>
-                    <div className="text-xs tracking-[0.15em] uppercase text-muted-foreground font-bold mb-1">{t(lang, 'differentiationStrategy') || 'Differentiation Strategy'}</div>
-                    <p className="text-sm bg-accent/5 p-3 rounded-lg border border-accent/20 font-medium">{f.competitor_mapping?.differentiation_strategy}</p>
+                  {/* Visual Meter */}
+                  <div className="w-full h-2 bg-muted rounded-full overflow-hidden mt-3">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        (compMapping.saturation_index || 45) >= 70 
+                          ? 'bg-destructive' 
+                          : (compMapping.saturation_index || 45) >= 50 
+                          ? 'bg-amber-500' 
+                          : 'bg-secondary'
+                      }`} 
+                      style={{ width: `${Math.min(100, compMapping.saturation_index || 45)}%` }} 
+                    />
                   </div>
                 </div>
-              </Section>
 
-              <Section icon={IndianRupee} title={t(lang, 'pricingStrategy') || 'Pricing Strategy'} testId="section-pricing">
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <div className="text-xs tracking-[0.15em] uppercase text-muted-foreground font-bold mb-1">{t(lang, 'suggestedPriceRange') || 'Suggested Price Range'}</div>
-                    <div className="font-display font-extrabold text-2xl lg:text-3xl text-primary tabular-nums mb-4">{f.product_market_value?.suggested_price_range}</div>
-                    <p className="text-xs text-muted-foreground leading-relaxed mb-3">{f.product_market_value?.regional_purchasing_power_note}</p>
-                    <div className="text-xs text-muted-foreground uppercase font-bold tracking-wider">{t(lang, 'strategy') || 'Strategy'}</div>
-                    <div className="text-sm font-bold mt-1 text-accent">{f.product_market_value?.pricing_strategy}</div>
-                  </div>
-                  <div className="border-l border-border pl-4 space-y-4">
-                    <div className="bg-muted/30 p-3 rounded-lg">
-                      <div className="text-xs text-muted-foreground font-bold">{t(lang, 'monthlyPotentialLow') || 'Monthly Potential (Low)'}</div>
-                      <div className="font-display font-bold text-xl tabular-nums mt-1">{inr(f.product_market_value?.monthly_revenue_potential_low)}</div>
-                    </div>
-                    <div className="bg-accent/10 p-3 rounded-lg border border-accent/30">
-                      <div className="text-xs text-muted-foreground font-bold">{t(lang, 'monthlyPotentialHigh') || 'Monthly Potential (High)'}</div>
-                      <div className="font-display font-bold text-xl tabular-nums text-accent mt-1">{inr(f.product_market_value?.monthly_revenue_potential_high)}</div>
-                    </div>
+                <div className="border border-border p-4 rounded-xl bg-muted/20">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground block">{t(lang, 'competitorsInRadius')}</span>
+                  <span className="font-display font-extrabold text-2xl text-primary mt-1 block">
+                    {compMapping.competitor_count || 4} <span className="text-sm font-normal text-muted-foreground">units</span>
+                  </span>
+                  <span className="text-[11px] text-muted-foreground mt-1 block">{compMapping.estimated_density || `Within 8 km radius`}</span>
+                </div>
+
+                <div className="border border-border p-4 rounded-xl bg-muted/20 sm:col-span-2 lg:col-span-1">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground block">{t(lang, 'marketHeadroom')}</span>
+                  <span className="font-display font-extrabold text-2xl text-secondary mt-1 block">
+                    {compMapping.market_headroom_pct || (100 - (compMapping.saturation_index || 45))}%
+                  </span>
+                  <span className="text-[11px] text-muted-foreground mt-1 block">Unserved addressable market share</span>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <div className="text-xs tracking-[0.15em] uppercase text-muted-foreground font-bold mb-2">{t(lang, 'keyCompetitorTypes') || 'Key Competitor Types'}</div>
+                  <div className="flex flex-wrap gap-2">
+                    {compMapping.key_competitors_type?.map((c, i) => (
+                      <span key={i} className="text-xs border border-border bg-muted/30 px-3 py-1 rounded-full font-medium">{c}</span>
+                    ))}
                   </div>
                 </div>
-              </Section>
-            </div>
+                <div>
+                  <div className="text-xs tracking-[0.15em] uppercase text-muted-foreground font-bold mb-1.5">{t(lang, 'differentiationStrategy') || 'Differentiation Strategy'}</div>
+                  <div className="text-xs bg-accent/5 p-4 rounded-xl border border-accent/20 font-medium leading-relaxed text-foreground">
+                    {compMapping.differentiation_strategy}
+                  </div>
+                </div>
+              </div>
+            </Section>
+
+            {/* PRODUCT-MARKET PRICING MATRIX */}
+            <Section 
+              icon={IndianRupee} 
+              title={t(lang, 'productPricingMatrixTitle') || 'Product-Market Pricing Matrix'} 
+              subtitle={pmValue.pricing_strategy || 'Unit economics & gross margins by SKU'} 
+              testId="section-pricing"
+            >
+              {pricingMatrix.length > 0 && (
+                <div className="overflow-x-auto mb-6">
+                  <table className="w-full text-xs text-left">
+                    <thead>
+                      <tr className="border-b border-border text-muted-foreground uppercase text-[10px] tracking-wider font-bold">
+                        <th className="py-2.5 pr-3">{t(lang, 'skuItem')}</th>
+                        <th className="py-2.5 pr-3">{t(lang, 'unitMeasurement')}</th>
+                        <th className="py-2.5 pr-3">{t(lang, 'productionCost')}</th>
+                        <th className="py-2.5 pr-3">{t(lang, 'targetSellingPrice')}</th>
+                        <th className="py-2.5 pr-3">{t(lang, 'grossMargin')}</th>
+                        <th className="py-2.5 pr-3">{t(lang, 'competitorPriceBenchmark')}</th>
+                        <th className="py-2.5">{t(lang, 'demandVelocity')}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/60">
+                      {pricingMatrix.map((item, idx) => (
+                        <tr key={idx} className="hover:bg-muted/30 transition-colors">
+                          <td className="py-3 pr-3 font-bold text-primary">{item.item}</td>
+                          <td className="py-3 pr-3 text-muted-foreground">{item.unit}</td>
+                          <td className="py-3 pr-3 tabular-nums text-foreground">{inr(item.cost)}</td>
+                          <td className="py-3 pr-3 tabular-nums font-bold text-primary">{inr(item.price)}</td>
+                          <td className="py-3 pr-3 tabular-nums">
+                            <span className="px-2 py-0.5 font-bold rounded-md bg-secondary/10 text-secondary border border-secondary/30">
+                              {item.marginPct}%
+                            </span>
+                          </td>
+                          <td className="py-3 pr-3 tabular-nums text-muted-foreground">{inr(item.competitorPrice)}</td>
+                          <td className="py-3">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-accent/10 text-accent border border-accent/30 whitespace-nowrap">
+                              {item.demand || 'High'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Pricing Strategy Summary Cards */}
+              <div className="grid sm:grid-cols-2 gap-4 p-4 bg-muted/20 rounded-xl border border-border">
+                <div>
+                  <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">{t(lang, 'suggestedPriceRange')}</div>
+                  <div className="font-display font-extrabold text-xl text-primary mt-0.5">{pmValue.suggested_price_range}</div>
+                  <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">{pmValue.regional_purchasing_power_note}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-background p-3 rounded-lg border border-border">
+                    <div className="text-[10px] font-bold text-muted-foreground uppercase">{t(lang, 'monthlyPotentialLow')}</div>
+                    <div className="font-display font-bold text-lg tabular-nums text-primary mt-1">{inr(pmValue.monthly_revenue_potential_low)}</div>
+                  </div>
+                  <div className="bg-background p-3 rounded-lg border border-accent/40 bg-accent/5">
+                    <div className="text-[10px] font-bold text-accent uppercase">{t(lang, 'monthlyPotentialHigh')}</div>
+                    <div className="font-display font-bold text-lg tabular-nums text-accent mt-1">{inr(pmValue.monthly_revenue_potential_high)}</div>
+                  </div>
+                </div>
+              </div>
+            </Section>
           </div>
         )}
 
@@ -685,6 +1229,22 @@ export default function ReportView({ report, onReset }) {
             </div>
           )}
 
+          {/* Proposed Differentiated Enterprise Model in Printable PDF */}
+          {isProposedEnterprise && (
+            <div className="border-2 border-amber-500/80 bg-amber-50/70 p-6 rounded-xl">
+              <div className="text-[10px] uppercase font-bold text-amber-700 tracking-widest mb-1">
+                ⭐ {t(lang, 'proposedEnterpriseBadge')}
+              </div>
+              <h3 className="text-xl font-black text-amber-950">
+                {lang === 'hi' && proposedEnterprise.model_name_hi ? proposedEnterprise.model_name_hi : (proposedEnterprise.model_name || `Specialized ${input.business_category} Hub`)}
+              </h3>
+              <p className="text-xs font-semibold text-amber-800 mt-0.5">{proposedEnterprise.tagline}</p>
+              <div className="mt-3 text-xs text-slate-700 bg-white/80 p-3 rounded-lg border border-amber-200 leading-relaxed">
+                <b>Pivot Rationale:</b> {proposedEnterprise.saturation_rationale || proposedEnterprise.trigger_reason}
+              </div>
+            </div>
+          )}
+
           <div className="border border-slate-300 p-6 bg-white rounded-xl">
             <h3 className="font-bold text-lg text-slate-900 mb-3">Primary Scheme: {fin.scheme_name}</h3>
             <div className="grid grid-cols-4 gap-2 text-xs bg-slate-100 p-3 rounded-lg">
@@ -729,6 +1289,62 @@ export default function ReportView({ report, onReset }) {
               <ol className="text-xs space-y-1 list-decimal list-inside">
                 {f.action_roadmap.map((st, i) => <li key={i}>{st}</li>)}
               </ol>
+            </div>
+          )}
+
+          {/* Capital Adequacy & Loan Assessment in Printable PDF */}
+          <div className="border border-slate-300 p-6 bg-white rounded-xl">
+            <h3 className="font-bold text-lg text-slate-900 mb-2">{t(lang, 'capitalSufficiencyTitle')}</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-slate-50 p-3 rounded-lg border border-slate-200">
+              <div>
+                <span className="text-slate-500 uppercase block font-semibold">{t(lang, 'yourInvestedCapital')}</span>
+                <span className="font-bold text-slate-900 text-sm">{inr(fin.margin_capital)}</span>
+              </div>
+              <div>
+                <span className="text-slate-500 uppercase block font-semibold">{t(lang, 'projectCost')}</span>
+                <span className="font-bold text-slate-900 text-sm">{inr(fin.project_cost)}</span>
+              </div>
+              <div>
+                <span className="text-slate-500 uppercase block font-semibold">{t(lang, 'minLoanRequired')}</span>
+                <span className="font-bold text-slate-900 text-sm">{inr(adequacy.min_loan_required || Math.max(0, (adequacy.min_project_cost || 100000) - (fin.margin_capital || 0)))}</span>
+              </div>
+              <div>
+                <span className="text-slate-500 uppercase block font-semibold">{t(lang, 'loanEligibilityStatus')}</span>
+                <span className={`font-bold text-sm ${adequacy.is_enough ? 'text-emerald-700' : 'text-rose-700'}`}>
+                  {adequacy.is_enough ? t(lang, 'eligibleForLoan') : t(lang, 'ineligibleLoan')}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Product-Market Pricing Matrix in Printable PDF */}
+          {pricingMatrix.length > 0 && (
+            <div className="border border-slate-300 p-6 bg-white rounded-xl">
+              <h3 className="font-bold text-lg text-slate-900 mb-3">{t(lang, 'productPricingMatrixTitle')}</h3>
+              <table className="w-full text-xs text-left">
+                <thead>
+                  <tr className="border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px]">
+                    <th className="py-1.5">{t(lang, 'skuItem')}</th>
+                    <th className="py-1.5">{t(lang, 'unitMeasurement')}</th>
+                    <th className="py-1.5">{t(lang, 'productionCost')}</th>
+                    <th className="py-1.5">{t(lang, 'targetSellingPrice')}</th>
+                    <th className="py-1.5">{t(lang, 'grossMargin')}</th>
+                    <th className="py-1.5">{t(lang, 'competitorPriceBenchmark')}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {pricingMatrix.map((item, idx) => (
+                    <tr key={idx}>
+                      <td className="py-1.5 font-semibold text-slate-800">{item.item}</td>
+                      <td className="py-1.5 text-slate-500">{item.unit}</td>
+                      <td className="py-1.5 tabular-nums text-slate-700">{inr(item.cost)}</td>
+                      <td className="py-1.5 tabular-nums font-bold text-slate-900">{inr(item.price)}</td>
+                      <td className="py-1.5 tabular-nums text-emerald-700 font-bold">{item.marginPct}%</td>
+                      <td className="py-1.5 tabular-nums text-slate-500">{inr(item.competitorPrice)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
