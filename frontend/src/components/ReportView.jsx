@@ -151,14 +151,28 @@ export default function ReportView({ report, onReset }) {
 
   const downloadPDF = async () => {
     setIsGeneratingPdf(true);
+    const originalTab = activeTab;
+    setActiveTab('all');
+
+    await new Promise((resolve) => setTimeout(resolve, 350));
+
     const el = printRef.current;
     if (!el) {
       setIsGeneratingPdf(false);
+      setActiveTab(originalTab);
+      window.print();
       return;
     }
+
     try {
-      const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#F4F1EA', useCORS: true });
-      const imgData = canvas.toDataURL('image/jpeg', 0.92);
+      toast.info(t(lang, 'generatingPdf') || 'Preparing complete PDF report...');
+      const canvas = await html2canvas(el, {
+        scale: 2,
+        backgroundColor: '#FFFFFF',
+        useCORS: true,
+        logging: false,
+      });
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfW = pdf.internal.pageSize.getWidth();
       const pdfH = pdf.internal.pageSize.getHeight();
@@ -166,19 +180,26 @@ export default function ReportView({ report, onReset }) {
       const imgH = (canvas.height * imgW) / canvas.width;
       let heightLeft = imgH;
       let position = 0;
+
       pdf.addImage(imgData, 'JPEG', 0, position, imgW, imgH);
       heightLeft -= pdfH;
+
       while (heightLeft > 0) {
         position = heightLeft - imgH;
         pdf.addPage();
         pdf.addImage(imgData, 'JPEG', 0, position, imgW, imgH);
         heightLeft -= pdfH;
       }
-      pdf.save(`Grameen-Udyog-${input.village || 'Report'}-${Date.now()}.pdf`);
+
+      pdf.save(`Grameen-Udyog-${(input.business_category || 'Feasibility').replace(/\s+/g, '-')}-${input.village || 'Report'}.pdf`);
+      toast.success('PDF Report downloaded successfully!');
     } catch (err) {
-      console.error(err);
+      console.error('PDF Export error:', err);
+      toast.error('Falling back to browser print PDF dialog...');
+      window.print();
     } finally {
       setIsGeneratingPdf(false);
+      setActiveTab(originalTab);
     }
   };
 
@@ -211,7 +232,7 @@ export default function ReportView({ report, onReset }) {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-8 lg:py-12">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-8 lg:py-12" ref={printRef}>
       {/* Top Action Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6 pb-4 border-b border-border">
         <Button variant="ghost" onClick={onReset} className="gap-2 font-medium" data-testid="report-back">

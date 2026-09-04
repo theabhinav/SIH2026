@@ -14,9 +14,44 @@ import ChatbotModal from '@/components/Chatbot/ChatbotModal';
 import { Bot } from 'lucide-react';
 import { t } from '@/i18n';
 
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('Unhandled UI Error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-6 text-center">
+          <h2 className="text-2xl font-bold text-destructive mb-2">Something went wrong</h2>
+          <p className="text-sm text-muted-foreground mb-4 max-w-md">
+            {this.state.error?.message || 'An unexpected rendering error occurred.'}
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-2 bg-primary text-primary-foreground font-semibold rounded-lg shadow hover:opacity-90"
+          >
+            Reload Page
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function Shell() {
   const { booted, isChatOpen, setIsChatOpen, lang } = useApp();
-  if (!booted) return <div className="min-h-screen flex items-center justify-center text-muted-foreground">Loading…</div>;
+  if (!booted) return <div className="min-h-screen flex items-center justify-center text-muted-foreground font-semibold">Loading Grameen Udyog AI…</div>;
   return (
     <div className="App min-h-screen relative">
       <NavBar />
@@ -56,11 +91,13 @@ function Shell() {
 
 function App() {
   return (
-    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <AppProvider>
-        <Shell />
-      </AppProvider>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <AppProvider>
+          <Shell />
+        </AppProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 
