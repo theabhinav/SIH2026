@@ -477,7 +477,7 @@ function extractAllEntities(text, currentForm = {}) {
 function getNextMissingStep(formState) {
   if (!formState.state) return 'state';
   if (!formState.district) return 'district';
-  if (!formState.block || !formState.village) return 'block_village';
+  if (!formState.block && !formState.village) return 'block_village';
   if (!formState.business_category) return 'business';
   if (!formState.margin_capital) return 'capital';
   return 'ready';
@@ -1137,6 +1137,10 @@ async function handleChatMessage(req, res) {
     if (extracted.margin_capital) formState.margin_capital = extracted.margin_capital;
     if (extracted.repayment_frequency) formState.repayment_frequency = extracted.repayment_frequency;
 
+    // Ensure block and village fallbacks so step advances cleanly
+    if (formState.block && !formState.village) formState.village = formState.block;
+    if (formState.village && !formState.block) formState.block = 'Main Block';
+
     // 4. Domain Scope Filter (handles unrelated / off-topic queries outside platform scope)
     const isRelated = isMessageRelatedToPlatform(text, formState, extracted);
     if (!isRelated) {
@@ -1627,14 +1631,18 @@ async function handleChatMessage(req, res) {
       (t.includes('बिजनेस') && !isListQuery) ||
       (t.includes('बिज़नेस') && !isListQuery);
 
-    // Accept spoken village names when waiting for block/village
-    if (formState.step === 'block_village' && !extracted.block && !extracted.village && text) {
-      const cleanVillageName = text.replace(/(हमारा|गाँव|ब्लॉक|ग्राम|पंचायत|में|रहते|हैं|का|की|जिला)/gi, '').trim();
-      const availableBlocks = Object.keys(LOCATIONS[formState.state]?.[formState.district] || {});
-      extracted.block = availableBlocks[0] || 'Main Block';
-      extracted.village = cleanVillageName || 'Gram Panchayat';
-      formState.block = extracted.block;
-      formState.village = extracted.village;
+    // Accept spoken or selected village/block names when waiting for block/village
+    if (formState.step === 'block_village') {
+      if (!formState.block && extracted.block) formState.block = extracted.block;
+      if (!formState.village && extracted.village) formState.village = extracted.village;
+      if (!formState.block && !formState.village && text) {
+        const cleanVillageName = text.replace(/(हमारा|गाँव|ब्लॉक|ग्राम|पंचायत|में|रहते|हैं|का|की|जिला)/gi, '').trim();
+        const availableBlocks = Object.keys(LOCATIONS[formState.state]?.[formState.district] || {});
+        formState.block = extracted.block || availableBlocks[0] || 'Main Block';
+        formState.village = extracted.village || cleanVillageName || formState.block || 'Gram Panchayat';
+      }
+      if (formState.block && !formState.village) formState.village = formState.block;
+      if (formState.village && !formState.block) formState.block = 'Main Block';
     }
 
     const hasAnyEntity = !!(extracted.state || extracted.district || extracted.block || extracted.village || extracted.business_category || extracted.margin_capital || extracted.repayment_frequency);

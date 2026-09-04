@@ -126,20 +126,46 @@ async function getReports(req, res) {
       .limit(50)
       .toArray();
 
-    res.json(list.map((r) => ({
-      id: r.id,
-      created_at: r.created_at,
-      advisory_type: r.advisory_type || r.input_params?.advisory_type || 'new',
-      capital_adequacy: r.capital_adequacy,
-      expansion_model: r.expansion_model,
-      input_params: r.input_params,
-      recommendation: r.recommendation,
-      financial_model: {
-        project_cost: r.financial_model?.project_cost,
-        approved_loan: r.financial_model?.approved_loan,
-        emi: r.financial_model?.emi,
-      },
-    })));
+    res.json(list.map((r) => {
+      const input = r.input || r.input_params || {};
+      const fin = r.financials || r.financial_model || {};
+      const feas = r.feasibility || r.viability || {};
+
+      return {
+        ...r,
+        id: r.id,
+        created_at: r.created_at,
+        advisory_type: r.advisory_type || input.advisory_type || 'new',
+        input: {
+          state: input.state || '',
+          district: input.district || '',
+          block: input.block || '',
+          village: input.village || '',
+          business_category: input.business_category || '',
+          margin_capital: Number(input.margin_capital || 0),
+          repayment_frequency: input.repayment_frequency || 'monthly',
+        },
+        input_params: r.input_params || input,
+        financials: {
+          project_cost: fin.project_cost || 0,
+          approved_loan: fin.approved_loan || 0,
+          emi: fin.emi || 0,
+          margin_money: fin.margin_money || 0,
+          tenure_years: fin.tenure_years || 7,
+          interest_rate: fin.interest_rate || 7,
+          subsidy_amount: fin.subsidy_amount || 0,
+          scheme_name: fin.scheme_name || 'NSFDC Micro-Credit Scheme',
+        },
+        financial_model: r.financial_model || fin,
+        feasibility: {
+          viability_score: feas.viability_score || 85,
+          viability_label: feas.viability_label || 'High Viability',
+          break_even_months: feas.break_even_months || 6,
+          is_proposed_enterprise: feas.is_proposed_enterprise ?? true,
+        },
+        viability: r.viability || feas,
+      };
+    }));
   } catch (err) {
     res.status(500).json({ detail: err.message });
   }

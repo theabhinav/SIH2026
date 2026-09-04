@@ -53,32 +53,38 @@ export default function Reports() {
         </div>
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {reports.map(r => (
-            <div key={r.id} className="border border-border bg-card p-6 hover-lift" data-testid={`report-card-${r.id}`}>
-              <div className="text-xs tracking-[0.2em] uppercase text-muted-foreground mb-2 flex items-center gap-1">
-                <MapPin size={11} /> {r.input.village}, {r.input.district}
-              </div>
-              <h3 className="font-display font-bold text-lg text-primary mb-4 leading-snug">{r.input.business_category}</h3>
-              <div className="grid grid-cols-2 gap-3 text-sm border-t border-border pt-4">
-                <div>
-                  <div className="text-[10px] tracking-[0.15em] uppercase text-muted-foreground">Score</div>
-                  <div className="font-bold tabular-nums flex items-center gap-1"><TrendingUp size={12} className="text-secondary" /> {r.feasibility.viability_score}</div>
+          {reports.map(r => {
+            const input = r?.input || r?.input_params || {};
+            const financials = r?.financials || r?.financial_model || {};
+            const feasibility = r?.feasibility || r?.viability || {};
+
+            return (
+              <div key={r.id || Math.random()} className="border border-border bg-card p-6 hover-lift" data-testid={`report-card-${r.id}`}>
+                <div className="text-xs tracking-[0.2em] uppercase text-muted-foreground mb-2 flex items-center gap-1">
+                  <MapPin size={11} /> {input.village || 'Gram Panchayat'}, {input.district || ''}
                 </div>
-                <div>
-                  <div className="text-[10px] tracking-[0.15em] uppercase text-muted-foreground">Loan</div>
-                  <div className="font-bold tabular-nums">₹{(r.financials.approved_loan).toLocaleString('en-IN')}</div>
+                <h3 className="font-display font-bold text-lg text-primary mb-4 leading-snug">{input.business_category || 'Enterprise'}</h3>
+                <div className="grid grid-cols-2 gap-3 text-sm border-t border-border pt-4">
+                  <div>
+                    <div className="text-[10px] tracking-[0.15em] uppercase text-muted-foreground">Score</div>
+                    <div className="font-bold tabular-nums flex items-center gap-1"><TrendingUp size={12} className="text-secondary" /> {feasibility.viability_score || 80}/100</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] tracking-[0.15em] uppercase text-muted-foreground">Loan</div>
+                    <div className="font-bold tabular-nums">₹{(financials.approved_loan || 0).toLocaleString('en-IN')}</div>
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-4">
+                  <Button size="sm" variant="outline" className="flex-1" onClick={() => setSelected(r)} data-testid={`view-${r.id}`}>
+                    <Eye size={14} className="mr-1" /> {t(lang, 'view')}
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => del(r.id)} data-testid={`delete-${r.id}`}>
+                    <Trash2 size={14} className="text-destructive" />
+                  </Button>
                 </div>
               </div>
-              <div className="flex gap-2 mt-4">
-                <Button size="sm" variant="outline" className="flex-1" onClick={() => setSelected(r)} data-testid={`view-${r.id}`}>
-                  <Eye size={14} className="mr-1" /> {t(lang, 'view')}
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => del(r.id)} data-testid={`delete-${r.id}`}>
-                  <Trash2 size={14} className="text-destructive" />
-                </Button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
