@@ -84,11 +84,30 @@ const EXPANSION_PRESETS = [
   },
 ];
 
+const DEFAULT_LOCATIONS = {
+  Maharashtra: { Nashik: { Sinnar: ['Musalgaon', 'Nandurshingote', 'Pandhurli'], Igatpuri: ['Ghoti Budruk', 'Wadivarhe'] }, Pune: { Junnar: ['Otur', 'Narayangaon'], Ambegaon: ['Manchar', 'Ghodegaon'] } },
+  'Uttar Pradesh': { Varanasi: { Sevapuri: ['Mirzamurad', 'Kachhwa'], Pindra: ['Baragaon', 'Phulwaria'] }, Lucknow: { Malihabad: ['Malihabad', 'Rahimabad'], Mohanlalganj: ['Mohanlalganj', 'Nigohan'] } },
+  'Tamil Nadu': { Coimbatore: { Pollachi: ['Anaimalai', 'Kinathukadavu'], Sulur: ['Sulur', 'Kannampalayam'] }, Madurai: { Melur: ['Melur', 'Kottampatti'], Vadipatti: ['Vadipatti', 'T. Kallupatti'] } },
+  'West Bengal': { Bardhaman: { Kalna: ['Kalna', 'Baghnapara'], Katwa: ['Katwa', 'Ketugram'] }, Hooghly: { Arambagh: ['Arambagh', 'Goghat'], Chinsurah: ['Bansberia', 'Mogra'] } },
+  Karnataka: { Mysuru: { Hunsur: ['Hunsur', 'Bilikere'], Piriyapatna: ['Piriyapatna', 'Kittur'] }, Belagavi: { Bailhongal: ['Bailhongal', 'Kittur'], Athani: ['Athani', 'Ainapur'] } },
+  Telangana: { Warangal: { Wardhannapet: ['Wardhannapet', 'Nekkonda'], Parkal: ['Parkal', 'Atmakur'] }, Karimnagar: { Huzurabad: ['Huzurabad', 'Veenavanka'], Jammikunta: ['Jammikunta', 'Mustabad'] } },
+  Gujarat: { Anand: { Anand: ['Anand', 'Vallabh Vidyanagar'], Petlad: ['Petlad', 'Sojitra'] }, Kutch: { Bhuj: ['Bhuj', 'Madhapar'], Anjar: ['Anjar', 'Bhachau'] } },
+  Bihar: { Patna: { Danapur: ['Danapur', 'Maner'], Barh: ['Barh', 'Athmalgola'] }, Muzaffarpur: { Kanti: ['Kanti', 'Meenapur'], Motipur: ['Motipur', 'Saraiya'] } },
+};
+
+const DEFAULT_CATEGORIES = [
+  'Dairy & Milk Products', 'Poultry Farming', 'Goat & Sheep Farming', 'Retail Kirana Store',
+  'Textiles & Handloom', 'Tailoring & Boutique', 'Beauty Parlour', 'Mobile Repair & Recharge Shop',
+  'Auto/E-Rickshaw Service', 'Bakery & Confectionery', 'Tea Stall / Snacks', 'Vegetable & Fruit Vending',
+  'Agri-Inputs (Seeds, Fertilizer)', 'Fisheries', 'Handicrafts', 'Beekeeping', 'Flour Mill',
+  'Papad / Pickle Making', 'Photocopy & CSC Centre', 'Two-Wheeler Repair'
+];
+
 export default function Advisory() {
   const { lang, authHeaders } = useApp();
   const [step, setStep] = useState(1);
-  const [locations, setLocations] = useState({});
-  const [categories, setCategories] = useState([]);
+  const [locations, setLocations] = useState(DEFAULT_LOCATIONS);
+  const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
   const [form, setForm] = useState({
     advisory_type: 'new', // 'new' | 'expansion'
     applicant_category: 'special', // 'general' | 'special' (Special gets 35% subsidy)
@@ -108,8 +127,8 @@ export default function Advisory() {
   const [report, setReport] = useState(null);
 
   useEffect(() => {
-    axios.get(`${API}/locations`).then((r) => setLocations(r.data));
-    axios.get(`${API}/business-categories`).then((r) => setCategories(r.data));
+    axios.get(`${API}/locations`).then((r) => { if (r.data && Object.keys(r.data).length > 0) setLocations(r.data); }).catch(() => {});
+    axios.get(`${API}/business-categories`).then((r) => { if (r.data && r.data.length > 0) setCategories(r.data); }).catch(() => {});
   }, []);
 
   const states = useMemo(() => Object.keys(locations), [locations]);

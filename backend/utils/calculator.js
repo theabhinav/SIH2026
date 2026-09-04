@@ -1,5 +1,5 @@
 const https = require('https');
-const { getProfile, STATE_PPP, PACKAGING, VENDOR_SURNAMES, VENDOR_FIRST, getSupply, EXPANSION_TYPES, CATEGORY_PROFILE } = require('../constants/businessData');
+const { getProfile, STATE_PPP, PACKAGING, VENDOR_SURNAMES, VENDOR_FIRST, getSupply, EXPANSION_TYPES, CATEGORY_PROFILE, getMarketIntelligence } = require('../constants/businessData');
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
@@ -400,6 +400,11 @@ function computeViability(input, fin, rev) {
   const locationScore = 40 + ppp * 9;
 
   const compSeed = seeded((input.village || '') + (input.business_category || '') + (input.district || ''));
+  const compIndex = Math.round(compSeed * 100);
+  const competitorCount = Math.max(2, Math.round(3 + compSeed * 11));
+  const saturationIndex = Math.max(18, Math.min(95, Math.round(22 + compSeed * 68)));
+  const marketHeadroomPct = 100 - saturationIndex;
+
   const competitionPenalty = Math.round(compSeed * 16);
 
   let score = 0.42 * profitScore + 0.33 * demandScore + 0.25 * locationScore;
@@ -417,7 +422,18 @@ function computeViability(input, fin, rev) {
   else if (score < 88) label = 'Strong';
   else label = 'Excellent';
 
-  return { score, label, competition_index: Math.round(compSeed * 100) };
+  // Strategic Condition: If business count in radius is high or feasibility is challenging, trigger Proposed Enterprise Model
+  const isProposedEnterprise = score < 60 || compIndex >= 60 || competitorCount >= 8 || saturationIndex >= 65;
+
+  return {
+    score,
+    label,
+    competition_index: compIndex,
+    competitor_count: competitorCount,
+    saturation_index: saturationIndex,
+    market_headroom_pct: marketHeadroomPct,
+    is_proposed_enterprise: isProposedEnterprise,
+  };
 }
 
 function computeRecommendation(input, fin, rev, viability, capitalAdequacy, expansionModel) {
@@ -448,6 +464,12 @@ function computeRecommendation(input, fin, rev, viability, capitalAdequacy, expa
     rationale = `Starting below minimum scale risks working-capital dry-up and debt service stress. A ₹${capitalAdequacy.min_required_margin.toLocaleString('en-IN')} margin allows a ₹${capitalAdequacy.min_project_cost.toLocaleString('en-IN')} baseline setup.`;
     suggested_capital = capitalAdequacy.min_required_margin;
     long_term_outlook = `Apply under PMEGP Special Category (Women/SC/ST/OBC/Rural) to unlock up to 35% margin money subsidy, which minimizes out-of-pocket investment.`;
+  } else if (viability.is_proposed_enterprise) {
+    verdict = 'Proposed Differentiated Enterprise';
+    tone = s < 45 ? 'caution' : 'positive';
+    headline = `Local competition is high (${viability.competitor_count} units in radius). We advise the Proposed Differentiated Enterprise model for ${input.business_category}.`;
+    rationale = `Generic setups in ${input.village || 'this area'} face saturation (${viability.saturation_index}% index). By adopting our proposed value-addition and direct B2B packaging model, you capture high-margin unserved demand with an estimated ₹${net.toLocaleString('en-IN')}/mo net profit.`;
+    long_term_outlook = `Bank loan criteria satisfied under ${fin.scheme_name}. Break-even is achievable in ~${rev.break_even_months || 12} months through specialized product margins and institutional tie-ups.`;
   } else if (s >= 72 && net > 0 && !fin.capped_by_max) {
     verdict = 'Recommended & Capital Sufficient';
     tone = 'positive';
@@ -702,12 +724,15 @@ function narrativeFallback(input, fin, rev, viability, recommendation, capitalAd
   const district = input.district || 'the district';
   const category = input.business_category || 'business';
   const isExpansion = input.advisory_type === 'expansion';
+  const mIntel = getMarketIntelligence(category);
 
   let executiveSummary = `${recommendation.headline} ${recommendation.rationale} Anchored in ${village}, ${district}, this ${category} enterprise targets steady local demand with a scheme-backed concessional loan.`;
   if (isExpansion && expansionModel) {
     executiveSummary = `Business Extension Advisory: ${recommendation.headline} With an expansion project cost of ₹${expansionModel.expansion_project_cost.toLocaleString('en-IN')}, this ${category} unit in ${village}, ${district} aims to scale monthly turnover by ~${expansionModel.growth_percentage}% and net profit by ~₹${expansionModel.incremental_monthly_profit.toLocaleString('en-IN')}/month, leveraged by government upgradation subsidies.`;
   } else if (capitalAdequacy && !capitalAdequacy.is_enough) {
     executiveSummary = `Capital Advisory: ${capitalAdequacy.message} Anchored in ${village}, ${district}, raising the margin to the ₹${capitalAdequacy.min_required_margin.toLocaleString('en-IN')} benchmark ensures smooth debt servicing and sustainable operations.`;
+  } else if (viability.is_proposed_enterprise) {
+    executiveSummary = `Proposed Enterprise Strategy: ${recommendation.headline} To bypass existing market saturation (${viability.saturation_index}% index, ${viability.competitor_count} units) in ${village}, we recommend establishing the "${mIntel.proposedEnterprise.modelName}". This model leverages value-addition to achieve high gross margins and reliable debt servicing.`;
   }
 
   const roadmap = isExpansion && expansionModel
@@ -726,42 +751,77 @@ function narrativeFallback(input, fin, rev, viability, recommendation, capitalAd
         'Begin commercial production and lock in retail channels',
       ];
 
-  return {
-    executive_summary: executiveSummary,
-    market_reach: {
-      consumer_base_estimate: `Roughly 8,000–9,000 households within an 8 km radius of ${village}, ${district}, with recurring demand for ${category}.`,
-      primary_channels: ['Direct Retail Selling', 'Local Weekly Haat / Market', 'B2B Supply to Nearby Towns'],
-      radius_km: 8,
-      target_segments: ['Local Households', 'Small Retail Shops', 'Community Kitchens & Canteens'],
-    },
-    opportunity_analysis: {
-      unserved_niches: [`Reliable quality ${category} supply in ${village}`, `Doorstep delivery to neighbouring villages of ${district}`, 'Branded, hygienic packaging'],
-      seasonal_windows: ['Festival Season (Diwali, Eid, local fairs)', 'Harvest-season spike'],
-      recommended_positioning: `Position as a dependable, fairly-priced local producer in ${district}.`,
-    },
-    swot: {
-      strengths: ['Low setup cost', 'Local raw-material access', 'Community trust', 'Scheme subsidy eligibility'],
-      weaknesses: ['Low initial brand awareness', 'Transport dependence', 'Working-capital constraints', 'Seasonal demand swings'],
-      opportunities: ['Expansion to block markets', 'WhatsApp order catalogue', 'SHG aggregation', 'Govt procurement tie-ups'],
-      threats: ['Unorganised competitors', 'Input price volatility', 'Power/water gaps in summer', 'Credit-sales pressure'],
-    },
-    threats_detailed: [
-      { threat: 'Raw material price hike', severity: 'Medium', mitigation: 'Keep a 15-day buffer stock and negotiate bulk rates' },
-      { threat: 'Unorganised competition', severity: 'Low', mitigation: 'Compete on quality, packaging and loyalty offers' },
-      { threat: 'Credit-sales cash crunch', severity: 'High', mitigation: 'Enforce a 7-day credit limit; push digital payments' },
-    ],
-    competitor_mapping: {
-      estimated_density: `About ${3 + Math.round(viability.competition_index / 25)} small unorganised players within 10 km of ${village}`,
-      competition_level: viability.competition_index > 60 ? 'High' : viability.competition_index > 35 ? 'Moderate' : 'Low',
-      key_competitors_type: ['Traditional traders/artisans', 'Small unregistered sellers'],
-      differentiation_strategy: 'Consistent quality, honest weight, hygienic packaging and reliable delivery.',
-    },
+  const hhCount = Math.round(7200 + seeded(village + district) * 3800);
+  const popEstimate = Math.round(hhCount * 4.6);
+  const monthlyMarketVolume = r0((rev.monthly_revenue || 80000) * (2.6 + seeded(district + category) * 1.8));
+
+    const compCount = viability.competitor_count ?? Math.max(3, Math.round(3 + seeded(village + district) * 10));
+    const satIndex = viability.saturation_index ?? Math.round(35 + seeded(village + (input.state || '')) * 45);
+    const headroom = viability.market_headroom_pct ?? (100 - satIndex);
+
+    return {
+      executive_summary: executiveSummary,
+      is_proposed_enterprise: viability.is_proposed_enterprise,
+      proposed_enterprise: {
+        is_proposed: viability.is_proposed_enterprise,
+        model_name: mIntel.proposedEnterprise.modelName,
+        model_name_hi: mIntel.proposedEnterprise.modelName_hi,
+        tagline: mIntel.proposedEnterprise.tagline,
+        saturation_rationale: mIntel.proposedEnterprise.saturationRationale,
+        key_differentiators: mIntel.proposedEnterprise.keyDifferentiators,
+        trigger_reason: viability.score < 60
+          ? `Feasibility score is challenging (${viability.score}/100). The proposed differentiated enterprise model transforms standard operations into a high-margin, bank-viable venture.`
+          : `Local competitor density is high (${compCount} competitors in 8 km radius, Saturation Index: ${satIndex}%). The proposed enterprise model bypasses saturation through value addition.`,
+      },
+      market_reach: {
+        radius_km: 8,
+        household_count: hhCount,
+        population_estimate: popEstimate,
+        monthly_demand_volume: monthlyMarketVolume,
+        demand_velocity: viability.score >= 65 ? 'High Daily Frequency' : 'Steady Recurring Consumption',
+        consumer_base_estimate: `Roughly ${hhCount.toLocaleString('en-IN')} households (~${popEstimate.toLocaleString('en-IN')} population) within an 8 km radius of ${village}, ${district}, with an estimated monthly market volume of ₹${monthlyMarketVolume.toLocaleString('en-IN')}.`,
+        primary_channels: [
+          { channel: 'Direct Retail & Counter Selling', share_pct: 45, desc: 'Highest cash margin & direct customer loyalty' },
+          { channel: 'Local Weekly Haats & Village Bazaars', share_pct: 30, desc: 'High-volume weekly cash liquidity' },
+          { channel: 'Semi-Urban B2B & Commercial Outlets', share_pct: 15, desc: 'Steady bulk orders with local shops & dhabas' },
+          { channel: 'Doorstep Delivery / Digital Pre-Orders', share_pct: 10, desc: 'Repeat household subscriptions via WhatsApp' },
+        ],
+        target_segments: mIntel.untappedSegments,
+      },
+      opportunity_analysis: {
+        unserved_niches: mIntel.valueAddNiches.map((v) => v.title),
+        value_add_niches: mIntel.valueAddNiches,
+        untapped_segments: mIntel.untappedSegments,
+        seasonal_windows: ['Festival Season Spike (Diwali, Eid, Local Melas)', 'Harvest-Season Agrarian Liquidity Cycle', 'Wedding & Cultural Celebration Months'],
+        recommended_positioning: mIntel.proposedEnterprise.tagline,
+      },
+      swot: {
+        strengths: ['Low setup cost', 'Local raw-material access', 'Community trust', 'Scheme subsidy eligibility'],
+        weaknesses: ['Low initial brand awareness', 'Transport dependence', 'Working-capital constraints', 'Seasonal demand swings'],
+        opportunities: ['Expansion to block markets', 'WhatsApp order catalogue', 'SHG aggregation', 'Govt procurement tie-ups'],
+        threats: ['Unorganised competitors', 'Input price volatility', 'Power/water gaps in summer', 'Credit-sales pressure'],
+      },
+      threats_detailed: [
+        { threat: 'Raw material price hike', severity: 'Medium', mitigation: 'Keep a 15-day buffer stock and negotiate bulk rates' },
+        { threat: 'Unorganised competition', severity: 'Low', mitigation: 'Compete on quality, packaging and loyalty offers' },
+        { threat: 'Credit-sales cash crunch', severity: 'High', mitigation: 'Enforce a 7-day credit limit; push digital payments' },
+      ],
+      competitor_mapping: {
+        estimated_density: `About ${compCount} small unorganised players within 8 km of ${village}`,
+        competitor_count: compCount,
+        competition_level: satIndex >= 75 ? 'Saturated' : satIndex >= 55 ? 'High' : satIndex >= 35 ? 'Moderate' : 'Low',
+        saturation_index: satIndex,
+        market_headroom_pct: headroom,
+        key_competitors_type: ['Traditional roadside unorganised sellers', 'Town distributor supply agents', 'Uncertified loose commodity traders'],
+        differentiation_strategy: mIntel.proposedEnterprise.keyDifferentiators.join('. '),
+      },
     product_market_value: {
-      suggested_price_range: '₹40 – ₹450 depending on product size/unit',
+      suggested_price_range: `₹${mIntel.pricingMatrix[0].price} – ₹${mIntel.pricingMatrix[1].price} across basic and premium offerings`,
       regional_purchasing_power_note: `${input.state || 'The region'} shows ${(STATE_PPP[input.state] || 3) >= 4 ? 'moderate-to-good' : 'modest'} purchasing power with steady essential-goods demand.`,
-      pricing_strategy: 'Competitive value pricing',
-      monthly_revenue_potential_low: r0(rev.monthly_revenue * 0.8),
-      monthly_revenue_potential_high: r0(rev.monthly_revenue * 1.25),
+      pricing_strategy: 'Value-Addition Premium with Competitive Base Penetration',
+      pricing_matrix: mIntel.pricingMatrix,
+      monthly_revenue_potential_low: r0(rev.monthly_revenue * 0.82),
+      monthly_revenue_potential_high: r0(rev.monthly_revenue * 1.28),
     },
     action_roadmap: roadmap,
     cultural_local_note: `Locally-made goods enjoy strong trust in ${district}, aiding early adoption.`,

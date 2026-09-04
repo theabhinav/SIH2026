@@ -100,6 +100,8 @@ async function generateReport(req, res) {
       revenue_model: rev,
       viability,
       recommendation: rec,
+      is_proposed_enterprise: viability.is_proposed_enterprise,
+      proposed_enterprise: narrative.proposed_enterprise,
       government_schemes: schemes,
       nearby_vendors: vendors,
       supply_chain_map: supplyChain,
