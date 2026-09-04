@@ -11,6 +11,7 @@ const authRoutes = require('./routes/authRoutes');
 const advisoryRoutes = require('./routes/advisoryRoutes');
 const shopRoutes = require('./routes/shopRoutes');
 const metaRoutes = require('./routes/metaRoutes');
+const chatRoutes = require('./routes/chatRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 8001;
@@ -26,6 +27,7 @@ app.get('/api', (req, res) => {
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/chat', chatRoutes);
 app.use('/api', advisoryRoutes);
 app.use('/api', shopRoutes);
 app.use('/api', metaRoutes);
@@ -49,7 +51,7 @@ app.get('*', (req, res) => {
 connectDB()
   .then(() => {
     app.listen(PORT, '0.0.0.0', () => {
-      console.log(`🚀 Express server running on http://0.0.0.0:${PORT}`);
+      console.log(`\n🚀 Server is LIVE! Clickable link below:\n👉 http://localhost:${PORT}\n`);
     });
   })
   .catch((err) => {
