@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { useApp, API } from '@/context/AppContext';
 import { t } from '@/i18n';
@@ -18,23 +18,68 @@ import {
   Search,
   Check,
   X,
-  Navigation
+  Navigation,
+  ChevronDown,
 } from 'lucide-react';
 import ReportView from '@/components/ReportView';
+import MarketIntelligencePanel from '@/components/MarketIntelligencePanel';
+
+// ─── Cascading location selector sub-components ────────────────────────────
+
+function SelectDropdown({ label, value, options, onChange, disabled, placeholder, loading }) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs tracking-[0.2em] uppercase font-bold text-muted-foreground">
+        {label}
+      </Label>
+      <div className="relative">
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          disabled={disabled || loading}
+          className="w-full h-11 px-3 pr-8 border border-border bg-background text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <option value="">{loading ? 'Loading…' : placeholder}</option>
+          {options.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </select>
+        {loading ? (
+          <Loader2 size={15} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-muted-foreground pointer-events-none" />
+        ) : (
+          <ChevronDown size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Advisory page ─────────────────────────────────────────────────────
 
 export default function Advisory() {
   const { lang, authHeaders } = useApp();
   const [step, setStep] = useState(1);
   const [categories, setCategories] = useState([]);
-  
-  // Village Search and Selection states
-  const [selectedVillage, setSelectedVillage] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchError, setSearchError] = useState(null);
-  const [hasSearched, setHasSearched] = useState(false);
 
+  // ── Cascading location selector state ────────────────────────────────────
+  const [states, setStates] = useState([]);
+  const [statesLoading, setStatesLoading] = useState(false);
+
+  const [selectedState, setSelectedState] = useState('');
+  const [districts, setDistricts] = useState([]);
+  const [districtsLoading, setDistrictsLoading] = useState(false);
+
+  const [selectedDistrict, setSelectedDistrict] = useState('');
+  const [villageQuery, setVillageQuery] = useState('');
+  const [villages, setVillages] = useState([]);
+  const [villagesLoading, setVillagesLoading] = useState(false);
+
+  // ── Selected village ──────────────────────────────────────────────────────
+  const [selectedVillage, setSelectedVillage] = useState(null);
+
+  // ── Advisory form ─────────────────────────────────────────────────────────
   const [form, setForm] = useState({
     state: '',
     district: '',
@@ -48,49 +93,69 @@ export default function Advisory() {
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState(null);
 
-  // Load business categories on mount
+  // ── Load states on mount ──────────────────────────────────────────────────
   useEffect(() => {
-    axios.get(`${API}/business-categories`)
-      .then(r => setCategories(r.data))
-      .catch(err => console.error('Failed to load business categories:', err));
+    setStatesLoading(true);
+    axios
+      .get(`${API}/locations/states`)
+      .then((r) => setStates(r.data.states || []))
+      .catch((err) => console.error('Failed to load states:', err))
+      .finally(() => setStatesLoading(false));
+
+    axios
+      .get(`${API}/business-categories`)
+      .then((r) => setCategories(r.data))
+      .catch((err) => console.error('Failed to load business categories:', err));
   }, []);
 
-  // Debounced live search across 644k+ villages in MongoDB
+  // ── Load districts when state changes ─────────────────────────────────────
   useEffect(() => {
-    const trimmed = searchQuery.trim();
-    if (!trimmed || selectedVillage) {
-      setSearchResults([]);
-      setIsSearching(false);
-      setSearchError(null);
-      setHasSearched(false);
-      return;
-    }
+    setDistricts([]);
+    setSelectedDistrict('');
+    setVillages([]);
+    setVillageQuery('');
+    setSelectedVillage(null);
+    if (!selectedState) return;
 
-    setIsSearching(true);
-    setSearchError(null);
+    setDistrictsLoading(true);
+    axios
+      .get(`${API}/locations/districts`, { params: { state: selectedState } })
+      .then((r) => setDistricts(r.data.districts || []))
+      .catch((err) => console.error('Failed to load districts:', err))
+      .finally(() => setDistrictsLoading(false));
+  }, [selectedState]);
 
-    const debounceTimer = setTimeout(async () => {
-      try {
-        const response = await axios.get(`${API}/villages/search`, {
-          params: { q: trimmed, limit: 20 }
-        });
-        setSearchResults(Array.isArray(response.data) ? response.data : []);
-        setHasSearched(true);
-      } catch (err) {
-        console.error('Village search API error:', err);
-        setSearchError(err.response?.data?.detail || 'Failed to search villages. Please try again.');
-        setSearchResults([]);
-      } finally {
-        setIsSearching(false);
-      }
+  // ── Load villages when district changes or query changes (debounced) ──────
+  const loadVillages = useCallback((state, district, q) => {
+    if (!state || !district) return;
+    setVillagesLoading(true);
+    axios
+      .get(`${API}/locations/villages`, { params: { state, district, q: q || '' } })
+      .then((r) => setVillages(r.data.villages || []))
+      .catch((err) => console.error('Failed to load villages:', err))
+      .finally(() => setVillagesLoading(false));
+  }, []);
+
+  useEffect(() => {
+    setSelectedVillage(null);
+    setVillages([]);
+    if (!selectedDistrict) return;
+    loadVillages(selectedState, selectedDistrict, '');
+  }, [selectedDistrict, selectedState, loadVillages]);
+
+  // Debounced village query filter
+  useEffect(() => {
+    if (!selectedDistrict) return;
+    const timer = setTimeout(() => {
+      loadVillages(selectedState, selectedDistrict, villageQuery);
     }, 300);
+    return () => clearTimeout(timer);
+  }, [villageQuery, selectedState, selectedDistrict, loadVillages]);
 
-    return () => clearTimeout(debounceTimer);
-  }, [searchQuery, selectedVillage]);
-
+  // ── Handlers ──────────────────────────────────────────────────────────────
   const handleSelectVillage = (village) => {
     setSelectedVillage(village);
-    setForm(prev => ({
+    setForm((prev) => ({
       ...prev,
       state: village.state_name,
       district: village.district_name,
@@ -98,16 +163,43 @@ export default function Advisory() {
       village: village.village_name,
       selected_village: village,
     }));
-    setSearchResults([]);
-    setSearchQuery(village.village_name);
+
+    // If village is outside the 12 states (no coordinates), fetch OSM Nominatim coordinates
+    if (
+      (village.centroid_latitude == null && village.latitude == null) ||
+      (village.centroid_longitude == null && village.longitude == null)
+    ) {
+      axios
+        .get(`${API}/villages/${village.master_id}/coordinates`)
+        .then((res) => {
+          if (res.data && res.data.latitude != null && res.data.longitude != null) {
+            const updated = {
+              ...village,
+              centroid_latitude: res.data.latitude,
+              centroid_longitude: res.data.longitude,
+              latitude: res.data.latitude,
+              longitude: res.data.longitude,
+              location: res.data.location,
+              coordinates_source: res.data.coordinates_source,
+            };
+            setSelectedVillage(updated);
+            setForm((prev) => ({
+              ...prev,
+              selected_village: updated,
+            }));
+            setVillages((prev) =>
+              prev.map((v) => (v.master_id === village.master_id ? updated : v))
+            );
+          }
+        })
+        .catch((err) => console.warn('Failed to resolve OSM village coordinates:', err));
+    }
   };
 
   const handleClearVillage = () => {
     setSelectedVillage(null);
-    setSearchQuery('');
-    setSearchResults([]);
-    setHasSearched(false);
-    setForm(prev => ({
+    setVillageQuery('');
+    setForm((prev) => ({
       ...prev,
       state: '',
       district: '',
@@ -115,6 +207,14 @@ export default function Advisory() {
       village: '',
       selected_village: null,
     }));
+  };
+
+  const handleClearAll = () => {
+    setSelectedState('');
+    setSelectedDistrict('');
+    setVillageQuery('');
+    setVillages([]);
+    handleClearVillage();
   };
 
   const canNext = {
@@ -126,11 +226,11 @@ export default function Advisory() {
   const generate = async () => {
     setLoading(true);
     try {
-      const r = await axios.post(`${API}/feasibility/generate`, {
-        ...form,
-        selected_village: selectedVillage,
-        language: lang,
-      }, { headers: authHeaders });
+      const r = await axios.post(
+        `${API}/feasibility/generate`,
+        { ...form, selected_village: selectedVillage, language: lang },
+        { headers: authHeaders }
+      );
       setReport(r.data);
     } catch (e) {
       toast.error(e.response?.data?.detail || 'Failed to generate report');
@@ -169,6 +269,8 @@ export default function Advisory() {
       </div>
 
       <div className="border border-border bg-card p-8 lg:p-12">
+
+        {/* ── Step 1: Cascading Location Selector ────────────────────── */}
         {step === 1 && (
           <div className="space-y-6" data-testid="step-location">
             <div>
@@ -177,116 +279,109 @@ export default function Advisory() {
             </div>
 
             {!selectedVillage ? (
-              <div className="space-y-4">
-                <div className="relative">
-                  <Label htmlFor="village-search-input" className="text-xs tracking-[0.2em] uppercase font-bold text-muted-foreground mb-2 block">
-                    {t(lang, 'village')} / Search Village Name
-                  </Label>
-                  <div className="relative flex items-center">
-                    <Search size={18} className="absolute left-3.5 text-muted-foreground pointer-events-none" />
-                    <Input
-                      id="village-search-input"
-                      data-testid="village-search-input"
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Type village name (e.g., Khag, Rampur, Sinnar)..."
-                      className="pl-10 pr-10 h-13 text-base border-border focus-visible:ring-primary"
-                      autoComplete="off"
-                    />
-                    {isSearching ? (
-                      <Loader2 size={18} className="absolute right-3.5 animate-spin text-muted-foreground" />
-                    ) : searchQuery ? (
-                      <button
-                        type="button"
-                        onClick={() => { setSearchQuery(''); setSearchResults([]); setHasSearched(false); }}
-                        className="absolute right-3.5 text-muted-foreground hover:text-foreground p-1"
-                        aria-label="Clear search"
-                        data-testid="clear-search-btn"
-                      >
-                        <X size={16} />
-                      </button>
-                    ) : null}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1.5">
-                    Search across 644,000+ Indian villages from Census & Master records.
-                  </p>
-                </div>
+              <div className="space-y-5">
+                {/* State dropdown */}
+                <SelectDropdown
+                  label="1. Select State"
+                  value={selectedState}
+                  options={states}
+                  onChange={setSelectedState}
+                  placeholder="Select a State / Union Territory"
+                  loading={statesLoading}
+                />
 
-                {/* Search Error Notice */}
-                {searchError && (
-                  <div className="p-4 border border-destructive/30 bg-destructive/10 text-destructive text-sm" data-testid="search-error">
-                    {searchError}
-                  </div>
-                )}
+                {/* District dropdown */}
+                <SelectDropdown
+                  label="2. Select District"
+                  value={selectedDistrict}
+                  options={districts}
+                  onChange={setSelectedDistrict}
+                  placeholder={selectedState ? 'Select a District' : 'Select a State first'}
+                  disabled={!selectedState}
+                  loading={districtsLoading}
+                />
 
-                {/* Searching Loader Indicator */}
-                {isSearching && (
-                  <div className="p-4 border border-border bg-background text-sm text-muted-foreground flex items-center gap-2" data-testid="search-loading">
-                    <Loader2 size={16} className="animate-spin text-primary" /> Searching village database...
-                  </div>
-                )}
-
-                {/* No Results Found Notice */}
-                {!isSearching && hasSearched && searchResults.length === 0 && (
-                  <div className="p-6 border border-border bg-muted/20 text-center space-y-1" data-testid="no-villages-found">
-                    <p className="text-sm font-semibold text-foreground">No villages found matching &quot;{searchQuery.trim()}&quot;</p>
-                    <p className="text-xs text-muted-foreground">Check the spelling or try searching for the Gram Panchayat name.</p>
-                  </div>
-                )}
-
-                {/* Autocomplete Results Dropdown List */}
-                {!isSearching && searchResults.length > 0 && (
-                  <div className="border border-border bg-card shadow-sm divide-y divide-border max-h-96 overflow-y-auto" data-testid="village-search-results">
-                    <div className="p-2.5 bg-muted/50 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex justify-between items-center">
-                      <span>Matching Villages ({searchResults.length})</span>
-                      <span>Click to select anchor</span>
+                {/* Village search */}
+                {selectedDistrict && (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs tracking-[0.2em] uppercase font-bold text-muted-foreground">
+                      3. Search &amp; Select Village
+                    </Label>
+                    <div className="relative">
+                      <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                      <Input
+                        type="text"
+                        value={villageQuery}
+                        onChange={(e) => setVillageQuery(e.target.value)}
+                        placeholder="Type to filter villages…"
+                        className="pl-9 pr-9 h-11 border-border focus-visible:ring-primary"
+                        autoComplete="off"
+                        data-testid="village-search-input"
+                      />
+                      {villagesLoading ? (
+                        <Loader2 size={15} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-muted-foreground pointer-events-none" />
+                      ) : villageQuery ? (
+                        <button
+                          type="button"
+                          onClick={() => setVillageQuery('')}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          <X size={15} />
+                        </button>
+                      ) : null}
                     </div>
-                    {searchResults.map((v) => (
-                      <div
-                        key={v.master_id}
-                        onClick={() => handleSelectVillage(v)}
-                        data-testid={`village-item-${v.master_id}`}
-                        className="p-3.5 hover:bg-muted/60 cursor-pointer transition-colors text-left flex items-start justify-between group"
-                      >
-                        <div className="space-y-1 pr-4">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-foreground group-hover:text-primary transition-colors text-base">
-                              {v.village_name}
-                            </span>
-                            {v.block_name && (
-                              <span className="text-xs px-2 py-0.5 border border-border bg-muted/40 text-muted-foreground">
-                                Block: {v.block_name}
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1">
-                            <span className="font-medium text-foreground/80">{v.district_name}, {v.state_name}</span>
-                            {v.village_census_code && (
-                              <span className="text-muted-foreground/70">· Census Code: {v.village_census_code}</span>
-                            )}
-                          </div>
-                        </div>
+                    <p className="text-xs text-muted-foreground">
+                      {villages.length > 0
+                        ? `${villages.length} village${villages.length > 1 ? 's' : ''} in ${selectedDistrict} district${villageQuery ? ` matching "${villageQuery}"` : ''} — click to select`
+                        : villagesLoading
+                        ? 'Loading villages…'
+                        : 'No villages found. Try a different search.'}
+                    </p>
 
-                        <div className="text-right shrink-0">
-                          {v.centroid_latitude !== null && v.centroid_longitude !== null ? (
-                            <div className="inline-flex items-center gap-1 text-[11px] font-mono text-accent bg-accent/10 px-2 py-1 border border-accent/20">
-                              <Navigation size={11} className="rotate-45" />
-                              <span>{v.centroid_latitude.toFixed(4)}°, {v.centroid_longitude.toFixed(4)}°</span>
-                            </div>
-                          ) : (
-                            <span className="text-[10px] text-muted-foreground/60 border border-border px-1.5 py-0.5">
-                              Centroid pending
-                            </span>
-                          )}
+                    {/* Village list */}
+                    {villages.length > 0 && (
+                      <div className="border border-border bg-card shadow-sm divide-y divide-border max-h-80 overflow-y-auto" data-testid="village-search-results">
+                        <div className="p-2.5 bg-muted/50 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex justify-between">
+                          <span>Villages ({villages.length})</span>
+                          <span>Click to select</span>
                         </div>
+                        {villages.map((v) => (
+                          <div
+                            key={v.master_id}
+                            onClick={() => handleSelectVillage(v)}
+                            data-testid={`village-item-${v.master_id}`}
+                            className="p-3.5 hover:bg-muted/60 cursor-pointer transition-colors flex items-start justify-between group"
+                          >
+                            <div className="space-y-0.5">
+                              <div className="font-semibold text-foreground group-hover:text-primary transition-colors text-sm">
+                                {v.village_name}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {v.block_name && <span className="mr-2">Block: {v.block_name}</span>}
+                                {v.district_name}, {v.state_name}
+                              </div>
+                            </div>
+                            <div className="shrink-0 ml-4">
+                              {(v.centroid_latitude != null || v.latitude != null) && (v.centroid_longitude != null || v.longitude != null) ? (
+                                <div className="inline-flex items-center gap-1 text-[11px] font-mono text-accent bg-accent/10 px-2 py-0.5 border border-accent/20">
+                                  <Navigation size={10} className="rotate-45" />
+                                  <span>{Number(v.centroid_latitude != null ? v.centroid_latitude : v.latitude).toFixed(3)}°</span>
+                                </div>
+                              ) : (
+                                <span className="text-[10px] text-muted-foreground/60 border border-border px-1.5 py-0.5">
+                                  No coords
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    )}
                   </div>
                 )}
               </div>
             ) : (
-              /* Selected Village Card View */
+              /* ── Selected Village Card ── */
               <div className="border border-primary bg-primary/5 p-6 space-y-4" data-testid="selected-village-card">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-3">
@@ -294,20 +389,19 @@ export default function Advisory() {
                       <Check size={20} strokeWidth={2.5} />
                     </div>
                     <div>
-                      <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">Selected Anchor Village</div>
+                      <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">Selected Village</div>
                       <h3 className="font-display text-2xl font-black text-foreground mt-0.5">
                         {selectedVillage.village_name}
                       </h3>
                       <p className="text-sm text-muted-foreground mt-0.5">
-                        {selectedVillage.district_name} District, {selectedVillage.state_name} {selectedVillage.state_code ? `(${selectedVillage.state_code})` : ''}
+                        {selectedVillage.district_name} District, {selectedVillage.state_name}
                       </p>
                     </div>
                   </div>
-
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={handleClearVillage}
+                    onClick={handleClearAll}
                     className="text-xs gap-1.5 border-border hover:border-destructive hover:text-destructive hover:bg-destructive/10 transition-colors"
                     data-testid="change-village-btn"
                   >
@@ -329,19 +423,19 @@ export default function Advisory() {
                     <div className="font-semibold mt-1 text-foreground">{selectedVillage.state_name}</div>
                   </div>
                   <div className="p-3 bg-background border border-border">
-                    <div className="text-muted-foreground uppercase tracking-wider text-[10px] font-bold">Geospatial Anchor</div>
-                    <div className="font-mono text-accent font-semibold mt-1">
-                      {selectedVillage.centroid_latitude !== null && selectedVillage.centroid_longitude !== null
-                        ? `${selectedVillage.centroid_latitude.toFixed(4)}°, ${selectedVillage.centroid_longitude.toFixed(4)}°`
-                        : 'Census Centroid'}
+                    <div className="text-muted-foreground uppercase tracking-wider text-[10px] font-bold">Coordinates</div>
+                    <div className="font-mono text-accent font-semibold mt-1 text-[11px]">
+                      {(selectedVillage.centroid_latitude != null || selectedVillage.latitude != null) && (selectedVillage.centroid_longitude != null || selectedVillage.longitude != null)
+                        ? `${Number(selectedVillage.centroid_latitude != null ? selectedVillage.centroid_latitude : selectedVillage.latitude).toFixed(4)}°, ${Number(selectedVillage.centroid_longitude != null ? selectedVillage.centroid_longitude : selectedVillage.longitude).toFixed(4)}°`
+                        : 'Not available'}
                     </div>
                   </div>
                 </div>
 
-                <div className="text-[11px] text-muted-foreground flex items-center gap-2">
-                  <span className="font-mono text-[10px] text-muted-foreground/70">ID: {selectedVillage.master_id}</span>
-                  {selectedVillage.village_census_code && (
-                    <span>· Census Code: {selectedVillage.village_census_code}</span>
+                <div className="text-[11px] text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1">
+                  <span className="font-mono text-muted-foreground/70">ID: {selectedVillage.master_id}</span>
+                  {(selectedVillage.village_census_code || selectedVillage.census_2011_code) && (
+                    <span>· Census Code: {selectedVillage.village_census_code || selectedVillage.census_2011_code}</span>
                   )}
                 </div>
               </div>
@@ -349,6 +443,7 @@ export default function Advisory() {
           </div>
         )}
 
+        {/* ── Step 2: Business Category + Market Intelligence ─────────── */}
         {step === 2 && (
           <div className="space-y-6" data-testid="step-business">
             <div>
@@ -367,9 +462,18 @@ export default function Advisory() {
                 </button>
               ))}
             </div>
+
+            {/* Market Intelligence Panel — shows when village + category selected */}
+            {selectedVillage?.master_id && form.business_category && (
+              <MarketIntelligencePanel
+                masterId={selectedVillage.master_id}
+                category={form.business_category}
+              />
+            )}
           </div>
         )}
 
+        {/* ── Step 3: Capital ─────────────────────────────────────────── */}
         {step === 3 && (
           <div className="space-y-8" data-testid="step-capital">
             <div>
@@ -395,7 +499,7 @@ export default function Advisory() {
                 <span>₹10,000</span><span>₹5,00,000</span>
               </div>
               <div className="mt-6 flex gap-2 flex-wrap">
-                {[14000, 50000, 100000, 200000, 500000].map(v => (
+                {[14000, 50000, 100000, 200000, 500000].map((v) => (
                   <button
                     key={v}
                     onClick={() => setForm({ ...form, margin_capital: v })}
@@ -435,6 +539,7 @@ export default function Advisory() {
           </div>
         )}
 
+        {/* ── Step 4: Generate ────────────────────────────────────────── */}
         {step === 4 && (
           <div className="space-y-6 text-center py-8" data-testid="step-generate">
             <div className="w-16 h-16 bg-primary text-primary-foreground mx-auto flex items-center justify-center">
@@ -452,7 +557,7 @@ export default function Advisory() {
           </div>
         )}
 
-        {/* Navigation buttons */}
+        {/* Navigation */}
         <div className="flex items-center justify-between mt-10 pt-6 border-t border-border">
           <Button variant="ghost" onClick={() => setStep(Math.max(1, step - 1))} disabled={step === 1 || loading} data-testid="back-btn">
             <ArrowLeft size={16} className="mr-1" /> {t(lang, 'back')}

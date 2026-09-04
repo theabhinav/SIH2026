@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 
 const { connectDB } = require('./config/db');
 
@@ -12,6 +12,9 @@ const advisoryRoutes = require('./routes/advisoryRoutes');
 const shopRoutes = require('./routes/shopRoutes');
 const metaRoutes = require('./routes/metaRoutes');
 const villageRoutes = require('./routes/villageRoutes');
+const locationHierarchyRoutes = require('./routes/locationHierarchyRoutes');
+const catchmentRoutes = require('./routes/catchmentRoutes');
+const marketIntelligenceRoutes = require('./routes/marketIntelligenceRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 8001;
@@ -31,6 +34,9 @@ app.use('/api', advisoryRoutes);
 app.use('/api', shopRoutes);
 app.use('/api', metaRoutes);
 app.use('/api/villages', villageRoutes);
+app.use('/api/locations', locationHierarchyRoutes);
+app.use('/api/villages', catchmentRoutes);
+app.use('/api/market-intelligence', marketIntelligenceRoutes);
 
 // Serve Frontend static files if built
 const frontendBuildPath = path.join(__dirname, '../frontend/build');

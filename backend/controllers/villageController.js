@@ -199,6 +199,44 @@ async function searchVillages(req, res) {
   }
 }
 
+/**
+ * GET /api/villages/:masterId/coordinates
+ * Returns village coordinates, resolving from OpenStreetMap (Nominatim)
+ * if missing, and persisting to MongoDB villages collection.
+ */
+async function getVillageCoordinates(req, res) {
+  const { masterId } = req.params;
+  if (!masterId) return res.status(400).json({ detail: 'masterId is required' });
+
+  try {
+    const db = getDB();
+    const { resolveAndPersistVillageCoordinates } = require('../services/villageCoordinateService');
+    const village = await db.collection('villages').findOne({ master_id: masterId });
+    if (!village) return res.status(404).json({ detail: 'Village not found' });
+
+    const coordResult = await resolveAndPersistVillageCoordinates(village);
+
+    return res.json({
+      master_id: village.master_id,
+      village_name: village.village_name,
+      block_name: village.block_name || '',
+      district_name: village.district_name,
+      state_name: village.state_name,
+      centroid_latitude: coordResult.lat,
+      centroid_longitude: coordResult.lon,
+      latitude: coordResult.lat,
+      longitude: coordResult.lon,
+      location: coordResult.location,
+      coordinates_source: coordResult.source,
+      resolved: coordResult.resolved,
+    });
+  } catch (err) {
+    console.error('❌ Error getting village coordinates:', err);
+    return res.status(500).json({ detail: err.message });
+  }
+}
+
 module.exports = {
-  searchVillages
+  searchVillages,
+  getVillageCoordinates,
 };

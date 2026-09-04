@@ -38,6 +38,8 @@ const VILLAGE_SEARCH_PROJECTION = {
   block_code: 1,
   village_census_code: 1,
   village_code_2011: 1,
+  census_2011_code: 1,
+  census_2001_code: 1,
   centroid_latitude: 1,
   centroid_longitude: 1,
   latitude: 1,
@@ -71,10 +73,14 @@ function formatVillageResult(doc) {
     district_code: doc.district_code != null ? String(doc.district_code) : '',
     block_name: doc.block_name || '',
     block_code: doc.block_code != null ? String(doc.block_code) : '',
-    village_census_code: doc.village_census_code || '',
-    village_code_2011: doc.village_code_2011 || '',
+    village_census_code: doc.village_census_code || doc.village_code_2011 || doc.census_2011_code || '',
+    village_code_2011: doc.village_code_2011 || doc.census_2011_code || '',
+    census_2011_code: doc.census_2011_code || doc.village_code_2011 || '',
+    census_2001_code: doc.census_2001_code || '',
     centroid_latitude: lat,
     centroid_longitude: lon,
+    latitude: lat,
+    longitude: lon,
     location: doc.location || (lat !== null && lon !== null ? { type: 'Point', coordinates: [lon, lat] } : null)
   };
 }
