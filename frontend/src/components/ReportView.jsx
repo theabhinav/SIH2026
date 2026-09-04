@@ -7,13 +7,14 @@ import {
   ArrowLeft, Download, Sparkles, MapPin, TrendingUp, ShieldAlert, 
   Users, IndianRupee, Target, ListChecks, Landmark, Info, Wallet, 
   FileText, CheckCircle2, Phone, Store, Award, ExternalLink,
-  AlertTriangle, Zap, Building2
+  AlertTriangle, Zap, Building2, Printer
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import SupplyChainMap from '@/components/SupplyChainMap';
 import { localizeReport, CATEGORY_I18N } from '@/lib/reportLocalization';
+import { toast } from '@/components/ui/sonner';
 
 function inr(n) {
   if (n === undefined || n === null) return '₹0';
@@ -101,7 +102,7 @@ const TAB_LABELS = {
     mr: 'संपूर्ण अहवाल',
     ta: 'முழு அறிக்கை',
     te: 'పూర్తి నివేదిక',
-    bn: 'সম্পূর্ণ রিপোর্ট'
+    bn: 'সম্পূর্ণ প্রতিবেদন'
   }
 };
 
@@ -109,7 +110,7 @@ export default function ReportView({ report, onReset }) {
   const { lang } = useApp();
   const [activeTab, setActiveTab] = useState('overview');
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-  const printRef = useRef();
+  const printRef = useRef(null);
 
   const localizedReport = useMemo(() => localizeReport(report, lang), [report, lang]);
 
@@ -121,25 +122,9 @@ export default function ReportView({ report, onReset }) {
   const viability = localizedReport.viability || localizedReport.feasibility?.viability || {};
   const rec = localizedReport.recommendation || localizedReport.feasibility?.recommendation || {};
   const schemes = localizedReport.government_schemes || localizedReport.schemes || localizedReport.feasibility?.government_schemes || [];
-  const vendors = localizedReport.nearby_vendors || localizedReport.vendors || localizedReport.feasibility?.vendors || [];
-  const supplyChain = localizedReport.supply_chain_map || localizedReport.supply_chain || localizedReport.feasibility?.supply_chain_map || {};
   const narrative = localizedReport.narrative || {};
 
   const isExpansion = report.advisory_type === 'expansion' || input.advisory_type === 'expansion';
-  const adequacy = report.capital_adequacy || {
-    is_enough: (fin.margin_capital || 0) >= 10000,
-    status: (fin.margin_capital || 0) >= 10000 ? 'sufficient' : 'shortfall',
-    badge_text: (fin.margin_capital || 0) >= 10000 ? 'Capital is Sufficient' : 'Capital Shortfall',
-    min_required_margin: 10000,
-    min_project_cost: 100000,
-    shortfall: Math.max(0, 10000 - (fin.margin_capital || 0)),
-    message: (fin.margin_capital || 0) >= 10000 ? 'Capital meets minimum setup requirement.' : 'Capital is below minimum setup requirement.',
-    advice: 'Government subsidy under PMEGP provides up to 35% margin money assistance.',
-  };
-  const expansionModel = report.expansion_model;
-  const primaryScheme = schemes.find((s) => s.primary) || schemes[0] || {};
-  const maxSubsidy = schemes.reduce((m, s) => Math.max(m, s.exact_subsidy_amount || 0), 0) || primaryScheme.exact_subsidy_amount || Math.round(fin.project_cost * 0.25);
-
   const f = {
     ...narrative,
     ...localizedReport.feasibility,
@@ -152,26 +137,33 @@ export default function ReportView({ report, onReset }) {
   const downloadPDF = async () => {
     setIsGeneratingPdf(true);
     const originalTab = activeTab;
-    setActiveTab('all');
-
-    await new Promise((resolve) => setTimeout(resolve, 350));
-
-    const el = printRef.current;
-    if (!el) {
-      setIsGeneratingPdf(false);
-      setActiveTab(originalTab);
-      window.print();
-      return;
-    }
+    const originalScrollY = window.scrollY;
 
     try {
-      toast.info(t(lang, 'generatingPdf') || 'Preparing complete PDF report...');
+      setActiveTab('all');
+      window.scrollTo(0, 0);
+
+      await new Promise((resolve) => setTimeout(resolve, 400));
+
+      const el = printRef.current;
+      if (!el) {
+        window.print();
+        return;
+      }
+
+      toast.info(t(lang, 'generatingPdf') || 'Preparing high-resolution PDF report...');
+
       const canvas = await html2canvas(el, {
         scale: 2,
         backgroundColor: '#FFFFFF',
         useCORS: true,
         logging: false,
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: document.documentElement.offsetWidth,
+        windowHeight: document.documentElement.offsetHeight,
       });
+
       const imgData = canvas.toDataURL('image/jpeg', 0.95);
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfW = pdf.internal.pageSize.getWidth();
@@ -191,35 +183,34 @@ export default function ReportView({ report, onReset }) {
         heightLeft -= pdfH;
       }
 
-      pdf.save(`Grameen-Udyog-${(input.business_category || 'Feasibility').replace(/\s+/g, '-')}-${input.village || 'Report'}.pdf`);
-      toast.success('PDF Report downloaded successfully!');
+      const fileName = `Grameen-Udyog-${(input.business_category || 'Feasibility').replace(/[^a-zA-Z0-9]/g, '_')}-${(input.village || 'Report').replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+      pdf.save(fileName);
+      toast.success('PDF report downloaded successfully!');
     } catch (err) {
       console.error('PDF Export error:', err);
-      toast.error('Falling back to browser print PDF dialog...');
+      toast.error('Triggering browser print engine for PDF...');
       window.print();
     } finally {
       setIsGeneratingPdf(false);
       setActiveTab(originalTab);
+      window.scrollTo(0, originalScrollY);
     }
   };
 
-  const yearlySchedule = fin.yearly_schedule || fin.yearly || [];
-  const yearlyData = yearlySchedule.map(y => ({ name: `Y${y.year}`, Principal: y.principal, Interest: y.interest }));
-  const pieData = [
-    { name: t(lang, 'marginLabel') || 'Margin', value: fin.margin_capital || 0, color: 'hsl(var(--secondary))' },
-    { name: t(lang, 'loanLabel') || 'Loan', value: fin.approved_loan || 0, color: 'hsl(var(--accent))' },
-  ];
+  const printVectorPDF = () => {
+    const originalTab = activeTab;
+    setActiveTab('all');
+    setTimeout(() => {
+      window.print();
+      setActiveTab(originalTab);
+    }, 300);
+  };
 
   const categoryTitle = CATEGORY_I18N[lang]?.[input.business_category] || input.business_category;
-
   const isProposedEnterprise = !!(report.is_proposed_enterprise || viability.is_proposed_enterprise || narrative.is_proposed_enterprise || f.is_proposed_enterprise || (!isExpansion && viability.score < 60));
   const proposedEnterprise = report.proposed_enterprise || narrative.proposed_enterprise || f.proposed_enterprise || {};
-  const marketReach = f.market_reach || narrative.market_reach || {};
-  const oppAnalysis = f.opportunity_analysis || narrative.opportunity_analysis || {};
   const compMapping = f.competitor_mapping || narrative.competitor_mapping || {};
-  const pmValue = f.product_market_value || narrative.product_market_value || {};
-  const pricingMatrix = pmValue.pricing_matrix || [];
-  const valueAddNiches = oppAnalysis.value_add_niches || [];
+  const maxSubsidy = schemes.reduce((m, s) => Math.max(m, s.exact_subsidy_amount || 0), 0);
 
   const TABS = [
     { id: 'overview', label: TAB_LABELS.overview[lang] || TAB_LABELS.overview.en, icon: Sparkles },
@@ -233,8 +224,7 @@ export default function ReportView({ report, onReset }) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-8 lg:py-12" ref={printRef}>
-      {/* Top Action Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6 pb-4 border-b border-border">
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6 pb-4 border-b border-border no-print">
         <Button variant="ghost" onClick={onReset} className="gap-2 font-medium" data-testid="report-back">
           <ArrowLeft size={16} /> {t(lang, 'newAdvisory') || 'New Advisory'}
         </Button>

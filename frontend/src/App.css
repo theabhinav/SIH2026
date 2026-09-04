@@ -1,3 +1,36 @@
 .App {
-    min-height: 100vh;
+  min-height: 100vh;
+}
+
+@media print {
+  nav,
+  header,
+  .no-print,
+  [data-testid="floating-ai-sahayak-btn"],
+  [data-testid="report-back"],
+  .sticky {
+    display: none !important;
+  }
+
+  body,
+  .App {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .border,
+  .card,
+  section,
+  table,
+  tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
 }
