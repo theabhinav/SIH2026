@@ -11,6 +11,8 @@ export function AppProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem('gu_token'));
   const [lang, setLang] = useState(() => localStorage.getItem('gu_lang') || 'en');
   const [booted, setBooted] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [advisoryDraft, setAdvisoryDraft] = useState(null);
 
   useEffect(() => {
     localStorage.setItem('gu_lang', lang);
@@ -52,10 +54,17 @@ export function AppProvider({ children }) {
 
   const setPoints = (points) => setUser((u) => (u ? { ...u, points } : u));
 
+  const applyAdvisoryDraft = (draft) => {
+    setAdvisoryDraft(draft);
+  };
+
   const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
 
   return (
-    <AppContext.Provider value={{ user, token, lang, setLang, login, register, logout, authHeaders, booted, setPoints }}>
+    <AppContext.Provider value={{
+      user, token, lang, setLang, login, register, logout, authHeaders, booted, setPoints,
+      isChatOpen, setIsChatOpen, advisoryDraft, setAdvisoryDraft, applyAdvisoryDraft
+    }}>
       {children}
     </AppContext.Provider>
   );

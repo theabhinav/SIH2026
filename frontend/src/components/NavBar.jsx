@@ -6,10 +6,10 @@ import { Button } from '@/components/ui/button';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem
 } from '@/components/ui/dropdown-menu';
-import { Sprout, Languages, LogOut, User, Users, Coins } from 'lucide-react';
+import { Sprout, Languages, LogOut, User, Users, Coins, Bot } from 'lucide-react';
 
 export default function NavBar() {
-  const { user, logout, lang, setLang } = useApp();
+  const { user, logout, lang, setLang, setIsChatOpen } = useApp();
   const nav = useNavigate();
 
   return (
@@ -26,6 +26,23 @@ export default function NavBar() {
         </Link>
 
         <div className="flex items-center gap-2">
+          {/* AI Sahayak Voice Assistant Button near Community */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsChatOpen(true)}
+            data-testid="ai-sahayak-nav-btn"
+            className="gap-2 bg-primary/10 border-primary/40 text-primary hover:bg-primary hover:text-primary-foreground font-semibold rounded-full px-3 h-8 shadow-xs transition-all"
+            title={t(lang, 'aiSahayakSubtitle')}
+          >
+            <Bot size={15} className="shrink-0 text-primary" />
+            <span className="text-xs">{t(lang, 'aiSahayak')}</span>
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+          </Button>
+
           <Button variant="ghost" size="sm" onClick={() => nav('/community')} data-testid="community-link" className="gap-2">
             <Users size={16} />
             <span className="hidden sm:inline">{t(lang, 'community')}</span>

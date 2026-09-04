@@ -23,6 +23,7 @@ import {
   Building2,
   ShieldCheck,
   Zap,
+  Bot,
 } from 'lucide-react';
 import ReportView from '@/components/ReportView';
 
@@ -104,7 +105,7 @@ const DEFAULT_CATEGORIES = [
 ];
 
 export default function Advisory() {
-  const { lang, authHeaders } = useApp();
+  const { lang, authHeaders, advisoryDraft, setIsChatOpen } = useApp();
   const [step, setStep] = useState(1);
   const [locations, setLocations] = useState(DEFAULT_LOCATIONS);
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
@@ -125,6 +126,31 @@ export default function Advisory() {
   });
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState(null);
+
+  // Sync with AI Chatbot draft if user filled details via voice/chat
+  useEffect(() => {
+    if (advisoryDraft) {
+      setForm((prev) => ({
+        ...prev,
+        state: advisoryDraft.state || prev.state,
+        district: advisoryDraft.district || prev.district,
+        block: advisoryDraft.block || prev.block,
+        village: advisoryDraft.village || prev.village,
+        business_category: advisoryDraft.business_category || prev.business_category,
+        margin_capital: Number(advisoryDraft.margin_capital) || prev.margin_capital,
+        repayment_frequency: advisoryDraft.repayment_frequency || prev.repayment_frequency,
+      }));
+
+      // Automatically advance step based on populated data
+      if (advisoryDraft.state && advisoryDraft.district && advisoryDraft.village && advisoryDraft.business_category && advisoryDraft.margin_capital) {
+        setStep(4);
+      } else if (advisoryDraft.state && advisoryDraft.district && advisoryDraft.village && advisoryDraft.business_category) {
+        setStep(3);
+      } else if (advisoryDraft.state && advisoryDraft.district) {
+        setStep(2);
+      }
+    }
+  }, [advisoryDraft]);
 
   useEffect(() => {
     axios.get(`${API}/locations`).then((r) => { if (r.data && Object.keys(r.data).length > 0) setLocations(r.data); }).catch(() => {});
@@ -411,6 +437,33 @@ export default function Advisory() {
             ? (lang === 'hi' ? 'विस्तार हेतु आवश्यक पूंजी, अपेक्षित वृद्धि और सरकारी द्वितीय ऋण सब्सिडी का सटीक आकलन।' : 'Calculate capital needed to expand, scaling economics, and government upgradation subsidies.')
             : (lang === 'hi' ? 'स्थानीय व्यवहार्यता, आपकी पूंजी पर्याप्तता और सरकारी योजना सब्सिडी (₹ व %) का पूर्ण विश्लेषण।' : 'Assess local feasibility, capital sufficiency check, and government subsidy benefits (Rupees & %).')}
         </p>
+      </div>
+
+      {/* Voice Assistant Helper Banner for Low Literacy / Voice Users */}
+      <div className="mb-8 p-4 rounded-xl border border-primary/20 bg-primary/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs" data-testid="voice-assistant-banner">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+            <Bot size={22} />
+          </div>
+          <div>
+            <div className="text-xs font-bold uppercase tracking-wider text-primary flex items-center gap-1.5">
+              <span>{t(lang, 'aiSahayak')}</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            </div>
+            <div className="text-xs sm:text-sm text-foreground/85 font-medium mt-0.5">
+              {t(lang, 'needHelpBanner')}
+            </div>
+          </div>
+        </div>
+        <Button
+          size="sm"
+          onClick={() => setIsChatOpen(true)}
+          className="shrink-0 rounded-full gap-2 text-xs font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs h-9 px-4"
+          data-testid="open-voice-sahayak-btn"
+        >
+          <Bot size={16} />
+          {t(lang, 'openAiSahayak')}
+        </Button>
       </div>
 
       {/* Stepper */}
