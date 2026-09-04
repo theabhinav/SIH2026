@@ -123,6 +123,17 @@ export default function ReportView({ report, onReset }) {
   const rec = localizedReport.recommendation || localizedReport.feasibility?.recommendation || {};
   const schemes = localizedReport.government_schemes || localizedReport.schemes || localizedReport.feasibility?.government_schemes || [];
   const narrative = localizedReport.narrative || {};
+  const adequacy = localizedReport.capital_adequacy || localizedReport.feasibility?.capital_adequacy || {
+    is_enough: true,
+    status: 'sufficient',
+    shortfall: 0,
+    min_required_margin: fin.margin_capital || 14000,
+    min_project_cost: fin.project_cost || 140000,
+    min_loan_required: fin.approved_loan || 126000,
+    message: 'Your margin capital is adequate.',
+    advice: 'You have sufficient capital to start this enterprise.'
+  };
+  const expansionModel = localizedReport.expansion_model || localizedReport.feasibility?.expansion_model || null;
 
   const isExpansion = report.advisory_type === 'expansion' || input.advisory_type === 'expansion';
   const f = {
